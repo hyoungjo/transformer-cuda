@@ -1,0 +1,13 @@
+{
+    "editor.formatOnSave": true,
+    "clangd.arguments": [
+        "--background-index",
+        "--query-driver=/home/hyoungjo/miniconda3/envs/cuda/bin/*",
+    ],
+    "[cpp][cuda]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    },
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+    },
+}

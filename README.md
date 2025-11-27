@@ -9,3 +9,8 @@ The environmental configurations are done on top of [Miniconda](https://www.anac
 conda create -n cuda -c nvidia/label/cuda-12.1.0 -c pytorch -c conda-forge \
     pytorch pytorch-cuda=12.1 cuda-toolkit gxx_linux-64
 ```
+
+```sh
+conda activate cuda
+pip3 install ruff
+```

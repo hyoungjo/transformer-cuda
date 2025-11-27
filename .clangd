@@ -1,0 +1,10 @@
+# `clangd` searches for a standard compiler named `g++`, but this project uses 
+# a separate compiler named `x86_64-conda-linux-gnu-g++` installed in the conda
+# environment. 
+# `clangd` might have found the default system compiler at `/usr/bin/g++`, but
+# it is not on the trusted path list "--query-driver" of `clangd`.
+
+CompileFlags:
+  Compiler: /home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++
+  Add:
+    - "--cuda-path=/home/hyoungjo/miniconda3/envs/cuda"
