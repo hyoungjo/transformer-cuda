@@ -10,3 +10,14 @@ conda create -n cuda --override-channels \
     -c nvidia/label/cuda-12.1.0 -c pytorch -c conda-forge \
     pytorch pytorch-cuda=12.1 cuda-toolkit gxx_linux-64
 ```
+
+### Python
+
+```sh
+conda activate cuda
+pip3 install numpy transformers
+```
+
+```sh
+sbatch python/run.sh
+```
