@@ -1,0 +1,525 @@
+[SLURM][INFO] Run started on baram at Fri Nov 28 08:39:45 PM KST 2025
+[PYTHON][INFO] Loading tokenizer and model
+[PYTHON][INFO] Saving model weights
+[PYTHON][INFO] Saving to data/weights.bin
+[PYTHON][INFO] Loading texts
+[PYTHON][INFO] Running inference
+[PYTHON][TRACE] text = 'The science of artificial intelligence is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  464,  3783,   286, 11666,  4430,   318]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' complex'
+[PYTHON][INFO] Saving to data/0/input_ids.bin
+[PYTHON][INFO] Saving to data/0/probs.bin
+[PYTHON][TRACE] text = 'The fundamental limit of theoretical speedup is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  464,  7531,  4179,   286, 16200,  2866,   929,   318]],
+       device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' that'
+[PYTHON][INFO] Saving to data/1/input_ids.bin
+[PYTHON][INFO] Saving to data/1/probs.bin
+[PYTHON][TRACE] text = "Amdahl's Law suggests that the serial portion of a program"
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[ 5840,    67, 15668,   338,  3854,  5644,   326,   262, 11389,  6903,
+           286,   257,  1430]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' is'
+[PYTHON][INFO] Saving to data/2/input_ids.bin
+[PYTHON][INFO] Saving to data/2/probs.bin
+[PYTHON][TRACE] text = 'The distinction between concurrency and parallelism lies in'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  464, 12941,  1022,  1673, 13382,   290, 10730,  1042,  7363,   287]],
+       device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' the'
+[PYTHON][INFO] Saving to data/3/input_ids.bin
+[PYTHON][INFO] Saving to data/3/probs.bin
+[PYTHON][TRACE] text = 'When decomposing a massive dataset,'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[ 2215, 26969, 32927,   257,  4858, 27039,    11]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' it'
+[PYTHON][INFO] Saving to data/4/input_ids.bin
+[PYTHON][INFO] Saving to data/4/probs.bin
+[PYTHON][TRACE] text = 'Granularity refers to the ratio of computation to'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[   38,  2596, 33737, 10229,   284,   262,  8064,   286, 29964,   284]],
+       device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' time'
+[PYTHON][INFO] Saving to data/5/input_ids.bin
+[PYTHON][INFO] Saving to data/5/probs.bin
+[PYTHON][TRACE] text = "Gustafson's Law argues that as problem size increases,"
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[   38,   436,  1878,  1559,   338,  3854, 11673,   326,   355,  1917,
+          2546,  5732,    11]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' so'
+[PYTHON][INFO] Saving to data/6/input_ids.bin
+[PYTHON][INFO] Saving to data/6/probs.bin
+[PYTHON][TRACE] text = 'Modern multi-core processors leverage shared memory to'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[31439,  5021,    12,  7295, 20399, 16094,  4888,  4088,   284]],
+       device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' store'
+[PYTHON][INFO] Saving to data/7/input_ids.bin
+[PYTHON][INFO] Saving to data/7/probs.bin
+[PYTHON][TRACE] text = 'A non-uniform memory access (NUMA) architecture implies'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[   32,  1729,    12,   403,  6933,  4088,  1895,   357,    45,    52,
+          5673,     8, 10959, 15565]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' that'
+[PYTHON][INFO] Saving to data/8/input_ids.bin
+[PYTHON][INFO] Saving to data/8/probs.bin
+[PYTHON][TRACE] text = 'The interconnect bandwidth between compute nodes'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  464,   987,  8443, 19484,  1022, 24061, 13760]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' is'
+[PYTHON][INFO] Saving to data/9/input_ids.bin
+[PYTHON][INFO] Saving to data/9/probs.bin
+[PYTHON][TRACE] text = 'Unlike a Central Processing Unit, a Graphics Processing Unit is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[18521,   257,  5694, 28403, 11801,    11,   257, 19840, 28403, 11801,
+           318]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' a'
+[PYTHON][INFO] Saving to data/10/input_ids.bin
+[PYTHON][INFO] Saving to data/10/probs.bin
+[PYTHON][TRACE] text = 'Vectorization allows a single instruction to'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[38469,  1634,  3578,   257,  2060, 12064,   284]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' be'
+[PYTHON][INFO] Saving to data/11/input_ids.bin
+[PYTHON][INFO] Saving to data/11/probs.bin
+[PYTHON][TRACE] text = 'The cache coherence protocol ensures that'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  464, 12940,   763, 23545,  8435, 19047,   326]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' the'
+[PYTHON][INFO] Saving to data/12/input_ids.bin
+[PYTHON][INFO] Saving to data/12/probs.bin
+[PYTHON][TRACE] text = 'A race condition inevitably occurs when'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[   32,  3234,  4006, 16857,  8833,   618]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' the'
+[PYTHON][INFO] Saving to data/13/input_ids.bin
+[PYTHON][INFO] Saving to data/13/probs.bin
+[PYTHON][TRACE] text = 'Implementing a barrier synchronization ensures that all threads'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[ 3546, 26908,   278,   257, 13054, 42133, 19047,   326,   477, 14390]],
+       device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' are'
+[PYTHON][INFO] Saving to data/14/input_ids.bin
+[PYTHON][INFO] Saving to data/14/probs.bin
+[PYTHON][TRACE] text = 'The overhead of spawning new threads can'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  464, 16965,   286, 38896,   649, 14390,   460]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' be'
+[PYTHON][INFO] Saving to data/15/input_ids.bin
+[PYTHON][INFO] Saving to data/15/probs.bin
+[PYTHON][TRACE] text = 'A mutex lock is specifically designed to'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  32, 4517, 1069, 5793,  318, 5734, 3562,  284]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' prevent'
+[PYTHON][INFO] Saving to data/16/input_ids.bin
+[PYTHON][INFO] Saving to data/16/probs.bin
+[PYTHON][TRACE] text = 'Deadlock happens when two competing actions'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[20489,  5354,  4325,   618,   734, 11780,  4028]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' are'
+[PYTHON][INFO] Saving to data/17/input_ids.bin
+[PYTHON][INFO] Saving to data/17/probs.bin
+[PYTHON][TRACE] text = 'Atomic operations are necessary because'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[ 2953, 10179,  4560,   389,  3306,   780]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' the'
+[PYTHON][INFO] Saving to data/18/input_ids.bin
+[PYTHON][INFO] Saving to data/18/probs.bin
+[PYTHON][TRACE] text = 'The Message Passing Interface (MPI) standard defines'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  464, 16000, 46389, 26491,   357,  7378,    40,     8,  3210, 15738]],
+       device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' a'
+[PYTHON][INFO] Saving to data/19/input_ids.bin
+[PYTHON][INFO] Saving to data/19/probs.bin
+[PYTHON][TRACE] text = 'In a master-worker paradigm, the central node'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  818,   257,  4958,    12, 28816, 23457,    11,   262,  4318, 10139]],
+       device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' of'
+[PYTHON][INFO] Saving to data/20/input_ids.bin
+[PYTHON][INFO] Saving to data/20/probs.bin
+[PYTHON][TRACE] text = 'Load balancing becomes critical when tasks'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[ 8912, 22486,  4329,  4688,   618,  8861]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' are'
+[PYTHON][INFO] Saving to data/21/input_ids.bin
+[PYTHON][INFO] Saving to data/21/probs.bin
+[PYTHON][TRACE] text = 'Distributed memory systems rely entirely on'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[20344,  6169,  4088,  3341,  8814,  5000,   319]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' the'
+[PYTHON][INFO] Saving to data/22/input_ids.bin
+[PYTHON][INFO] Saving to data/22/probs.bin
+[PYTHON][TRACE] text = 'MapReduce frameworks abstract the complexity of'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[13912,  7738,  7234, 29251, 12531,   262, 13357,   286]],
+       device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' the'
+[PYTHON][INFO] Saving to data/23/input_ids.bin
+[PYTHON][INFO] Saving to data/23/probs.bin
+[PYTHON][TRACE] text = 'The concept of single program, multiple data (SPMD) is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  464,  3721,   286,  2060,  1430,    11,  3294,  1366,   357,  4303,
+         12740,     8,   318]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' a'
+[PYTHON][INFO] Saving to data/24/input_ids.bin
+[PYTHON][INFO] Saving to data/24/probs.bin
+[PYTHON][TRACE] text = 'Parallel computing uses multiple processing elements simultaneously to solve a problem. The primary advantage is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[10044, 29363, 14492,  3544,  3294,  7587,  4847, 11640,   284,  8494,
+           257,  1917,    13,   383,  4165,  4621,   318]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' that'
+[PYTHON][INFO] Saving to data/25/input_ids.bin
+[PYTHON][INFO] Saving to data/25/probs.bin
+[PYTHON][TRACE] text = 'Modern computers rarely rely on a single central processing unit. Instead, they utilize multi-core processors that can execute independent threads at the same time on a single chip. This hardware concurrency allows for significant performance gains in multitasking environments, yet it introduces new challenges in resource management. The main difficulty in utilizing multiple cores is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[31439,  9061,  8365,  8814,   319,   257,  2060,  4318,  7587,  4326,
+            13,  5455,    11,   484, 17624,  5021,    12,  7295, 20399,   326,
+           460, 12260,  4795, 14390,   379,   262,   976,   640,   319,   257,
+          2060, 11594,    13,   770,  6890,  1673, 13382,  3578,   329,  2383,
+          2854,  8810,   287, 41785, 30463, 12493,    11,  1865,   340, 20718,
+           649,  6459,   287,  8271,  4542,    13,   383,  1388,  8722,   287,
+         25137,  3294, 21758,   318]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' that'
+[PYTHON][INFO] Saving to data/26/input_ids.bin
+[PYTHON][INFO] Saving to data/26/probs.bin
+[PYTHON][TRACE] text = 'Amdahl’s Law is a formula used to predict the theoretical speedup of a task when using multiple processors. It states that the maximum improvement is strictly limited by the portion of the program that cannot be parallelized. For example, if 50% of a program must run sequentially, the maximum speedup is 2x, regardless of how many thousands of processors are added. This law highlights the diminishing returns of simply adding hardware without algorithmic improvement. The inevitable result of a high serial fraction is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[ 5840,    67, 15668,   447,   247,    82,  3854,   318,   257, 10451,
+           973,   284,  4331,   262, 16200,  2866,   929,   286,   257,  4876,
+           618,  1262,  3294, 20399,    13,   632,  2585,   326,   262,  5415,
+          9025,   318, 14084,  3614,   416,   262,  6903,   286,   262,  1430,
+           326,  2314,   307, 10730,  1143,    13,  1114,  1672,    11,   611,
+          2026,     4,   286,   257,  1430,  1276,  1057,  4726,  3746,    11,
+           262,  5415,  2866,   929,   318,   362,    87,    11,  7692,   286,
+           703,   867,  4138,   286, 20399,   389,  2087,    13,   770,  1099,
+         11330,   262, 35197,  5860,   286,  2391,  4375,  6890,  1231,  8385,
+          9383,  9025,    13,   383, 13203,  1255,   286,   257,  1029, 11389,
+         13390,   318]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' that'
+[PYTHON][INFO] Saving to data/27/input_ids.bin
+[PYTHON][INFO] Saving to data/27/probs.bin
+[PYTHON][TRACE] text = 'Graphics Processing Units (GPUs) represent a massive shift from traditional CPU architecture. While a CPU is designed to minimize latency for a single thread using large caches and complex branch prediction, a GPU is designed to maximize throughput using massive parallelism. A GPU consists of thousands of smaller, simpler cores designed to execute the same instruction across different data simultaneously, a model known as Single Instruction, Multiple Threads (SIMT). This makes them ideal for vector math and matrix operations found in graphics rendering and deep learning. However, this architecture struggles with complex control flow; if threads within a group diverge at an "if-else" statement, the hardware must serialize the execution paths. The efficiency of a GPU drops significantly when'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[18172, 28403, 27719,   357, 33346,    82,     8,  2380,   257,  4858,
+          6482,   422,  4569,  9135, 10959,    13,  2893,   257,  9135,   318,
+          3562,   284, 17775, 24812,   329,   257,  2060,  4704,  1262,  1588,
+         50177,   290,  3716,  8478, 17724,    11,   257, 11362,   318,  3562,
+           284, 20487, 41997,  1262,  4858, 10730,  1042,    13,   317, 11362,
+         10874,   286,  4138,   286,  4833,    11, 18599, 21758,  3562,   284,
+         12260,   262,   976, 12064,  1973,  1180,  1366, 11640,    11,   257,
+          2746,  1900,   355, 14206, 46486,    11, 20401, 14122,    82,   357,
+         48913,    51,   737,   770,  1838,   606,  7306,   329, 15879, 10688,
+           290, 17593,  4560,  1043,   287,  9382, 14837,   290,  2769,  4673,
+            13,  2102,    11,   428, 10959, 12766,   351,  3716,  1630,  5202,
+            26,   611, 14390,  1626,   257,  1448, 12312,   469,   379,   281,
+           366,   361,    12, 17772,     1,  2643,    11,   262,  6890,  1276,
+         11389,  1096,   262,  9706, 13532,    13,   383,  9332,   286,   257,
+         11362, 10532,  5566,   618]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
+       device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' the'
+[PYTHON][INFO] Saving to data/28/input_ids.bin
+[PYTHON][INFO] Saving to data/28/probs.bin
+[PYTHON][TRACE] text = 'In distributed memory systems, typically managed by the Message Passing Interface (MPI), there is no shared address space between compute nodes. Each processor has its own local memory, and if it requires data held by another processor, that data must be explicitly packaged into a message and transmitted over the network interconnect. This introduces significant overhead, defined by latency (the time to start a message) and bandwidth (the rate at which data is sent). As the number of nodes in a cluster scales up, the topology of the network—whether it is a Torus, Dragonfly, or Fat-Tree—becomes a critical factor in performance. Programmers must carefully minimize the frequency and volume of communication, often overlapping computation with communication to hide the latency costs. The critical bottleneck in large-scale distributed systems is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  818,  9387,  4088,  3341,    11,  6032,  5257,   416,   262, 16000,
+         46389, 26491,   357,  7378,    40,   828,   612,   318,   645,  4888,
+          2209,  2272,  1022, 24061, 13760,    13,  5501, 12649,   468,   663,
+           898,  1957,  4088,    11,   290,   611,   340,  4433,  1366,  2714,
+           416,  1194, 12649,    11,   326,  1366,  1276,   307, 11777, 25555,
+           656,   257,  3275,   290, 18307,   625,   262,  3127,   987,  8443,
+            13,   770, 20718,  2383, 16965,    11,  5447,   416, 24812,   357,
+          1169,   640,   284,   923,   257,  3275,     8,   290, 19484,   357,
+          1169,  2494,   379,   543,  1366,   318,  1908,   737,  1081,   262,
+          1271,   286, 13760,   287,   257, 13946, 16252,   510,    11,   262,
+          1353,  1435,   286,   262,  3127,   960, 25356,   340,   318,   257,
+          4022,   385,    11,  2851, 12254,    11,   393, 12301,    12, 27660,
+           960,  9423,  2586,   257,  4688,  5766,   287,  2854,    13,  6118,
+         11056,  1276,  7773, 17775,   262,  8373,   290,  6115,   286,  6946,
+            11,  1690, 32997, 29964,   351,  6946,   284,  7808,   262, 24812,
+          3484,    13,   383,  4688, 49936,   287,  1588,    12,  9888,  9387,
+          3341,   318]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
+       device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' the'
+[PYTHON][INFO] Saving to data/29/input_ids.bin
+[PYTHON][INFO] Saving to data/29/probs.bin
+[PYTHON][TRACE] text = 'One of the most insidious problems in parallel programming is the race condition, which occurs when the timing or ordering of events affects the program\'s correctness. If two threads attempt to increment the same shared variable simultaneously without synchronization, they may overwrite each other\'s work, leading to unpredictable and often non-reproducible bugs. To prevent this, developers use synchronization primitives like mutexes (mutual exclusion locks) to define "critical sections"—blocks of code that only one thread can execute at a time. While locks ensure data integrity, they introduce serialization and can lead to performance degradation known as lock contention. Furthermore, improper locking can lead to deadlocks, a state where two or more threads are permanently blocked, each waiting for a resource that the other holds. A deadlock situation becomes unresolvable when'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[ 3198,   286,   262,   749, 43732,  2761,   287, 10730,  8300,   318,
+           262,  3234,  4006,    11,   543,  8833,   618,   262, 10576,   393,
+         16216,   286,  2995, 10975,   262,  1430,   338, 29409,    13,  1002,
+           734, 14390,  2230,   284, 18703,   262,   976,  4888,  7885, 11640,
+          1231, 42133,    11,   484,   743, 49312,  1123,   584,   338,   670,
+            11,  3756,   284, 22900,   290,  1690,  1729,    12,   260,  1676,
+          6077,   856, 11316,    13,  1675,  2948,   428,    11,  6505,   779,
+         42133,  2684, 20288,   588,  4517,  1069,   274,   357, 21973,   723,
+         19328, 19253,     8,   284,  8160,   366, 34666,  9004, 15327, 27372,
+           286,  2438,   326,   691,   530,  4704,   460, 12260,   379,   257,
+           640,    13,  2893, 19253,  4155,  1366, 11540,    11,   484, 10400,
+         11389,  1634,   290,   460,  1085,   284,  2854, 27486,  1900,   355,
+          5793, 22627,    13, 11399,    11, 18992, 22656,   460,  1085,   284,
+          2636, 28860,    11,   257,  1181,   810,   734,   393,   517, 14390,
+           389, 15043, 10226,    11,  1123,  4953,   329,   257,  8271,   326,
+           262,   584,  6622,    13,   317,  2636,  5354,  3074,  4329, 36501,
+           349, 23765,   618]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
+       device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' the'
+[PYTHON][INFO] Saving to data/30/input_ids.bin
+[PYTHON][INFO] Saving to data/30/probs.bin
+[PYTHON][TRACE] text = 'Cache coherence is a fundamental mechanism in symmetric multiprocessing (SMP) systems that ensures consistency of shared data across the private caches of multiple cores. When a processor modifies a memory location, that change must be propagated to other caches that hold a copy of the same location. Protocols like MESI (Modified, Exclusive, Shared, Invalid) manage this by snooping on the bus and invalidating outdated copies. A specific performance pitfall in this domain is "false sharing," which happens when two completely unrelated variables reside on the same cache line. If Core A writes to Variable X and Core B reads Variable Y, and both X and Y are on the same 64-byte line, the hardware treats this as a conflict. The cache line bounces back and forth between the cores, causing severe latency despite the fact that the threads are not logically sharing data. This effectively serializes the memory access and destroys parallel efficiency. The performance degradation caused by false sharing is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[30562,   763, 23545,   318,   257,  7531,  9030,   287, 23606, 19482,
+         18540,   305,   919,   278,   357,    50,  7378,     8,  3341,   326,
+         19047, 15794,   286,  4888,  1366,  1973,   262,  2839, 50177,   286,
+          3294, 21758,    13,  1649,   257, 12649,   953,  6945,   257,  4088,
+          4067,    11,   326,  1487,  1276,   307,  8928,   515,   284,   584,
+         50177,   326,  1745,   257,  4866,   286,   262,   976,  4067,    13,
+         20497,    82,   588,   337,  1546,    40,   357,  5841,  1431,    11,
+         35651,    11, 39403,    11, 17665,     8,  6687,   428,   416,  3013,
+         11224,   278,   319,   262,  1323,   290, 12515,   803, 23572,  9088,
+            13,   317,  2176,  2854,  6028,  7207,   287,   428,  7386,   318,
+           366,  9562,  7373,   553,   543,  4325,   618,   734,  3190, 19938,
+          9633, 26412,   319,   262,   976, 12940,  1627,    13,  1002,  7231,
+           317,  6797,   284, 35748,  1395,   290,  7231,   347,  9743, 35748,
+           575,    11,   290,  1111,  1395,   290,   575,   389,   319,   262,
+           976,  5598,    12, 26327,  1627,    11,   262,  6890, 18432,   428,
+           355,   257,  5358,    13,   383, 12940,  1627, 49623,   736,   290,
+          6071,  1022,   262, 21758,    11,  6666,  6049, 24812,  3805,   262,
+          1109,   326,   262, 14390,   389,   407, 34193,  7373,  1366,    13,
+           770,  6840, 11389,  4340,   262,  4088,  1895,   290, 27838, 10730,
+          9332,    13,   383,  2854, 27486,  4073,   416,  3991,  7373,   318]],
+       device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' known'
+[PYTHON][INFO] Saving to data/31/input_ids.bin
+[PYTHON][INFO] Saving to data/31/probs.bin
+[PYTHON][TRACE] text = 'In shared-memory parallel systems, one of the most subtle and difficult challenges is defining exactly when a write operation by one processor becomes visible to others. In a sequentially consistent model, the system guarantees that the results of any execution are the same as if the operations of all processors were executed in some sequential order, and the operations of each individual processor appear in this sequence in the order specified by its program. However, strictly enforcing this model imposes a massive performance penalty because it prevents the hardware from employing optimization techniques like instruction reordering and write buffering. Consequently, modern architectures often employ relaxed consistency models, such as Total Store Order (TSO) or Release Consistency, which allow certain memory operations to be reordered to hide latency. This shifts the burden of ensuring correctness to the programmer, who must explicitly insert memory fences to enforce ordering where critical. The primary consequence of relaxed memory consistency is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  818,  4888,    12, 31673, 10730,  3341,    11,   530,   286,   262,
+           749, 11800,   290,  2408,  6459,   318, 16215,  3446,   618,   257,
+          3551,  4905,   416,   530, 12649,  4329,  7424,   284,  1854,    13,
+           554,   257,  4726,  3746,  6414,  2746,    11,   262,  1080, 19026,
+           326,   262,  2482,   286,   597,  9706,   389,   262,   976,   355,
+           611,   262,  4560,   286,   477, 20399,   547, 10945,   287,   617,
+         35582,  1502,    11,   290,   262,  4560,   286,  1123,  1981, 12649,
+          1656,   287,   428,  8379,   287,   262,  1502,  7368,   416,   663,
+          1430,    13,  2102,    11, 14084, 26587,   428,  2746, 36794,   257,
+          4858,  2854,  7389,   780,   340, 15174,   262,  6890,   422, 26490,
+         23989,  7605,   588, 12064,   302, 34555,   290,  3551,  6940,  1586,
+            13, 24982,    11,  3660, 45619,  1690,  1873, 18397, 15794,  4981,
+            11,   884,   355,  7472,  9363,  8284,   357,  4694,    46,     8,
+           393, 13868,  3515,   396,  1387,    11,   543,  1249,  1728,  4088,
+          4560,   284,   307,   302, 24071,   284,  7808, 24812,    13,   770,
+         15381,   262, 10538,   286, 13359, 29409,   284,   262, 24292,    11,
+           508,  1276, 11777,  7550,  4088, 35771,   284,  4605, 16216,   810,
+          4688,    13,   383,  4165, 12921,   286, 18397,  4088, 15794,   318]],
+       device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' that'
+[PYTHON][INFO] Saving to data/32/input_ids.bin
+[PYTHON][INFO] Saving to data/32/probs.bin
+[PYTHON][TRACE] text = 'The journey toward Exascale computing—systems capable of performing one quintillion floating-point operations per second (10^18 FLOPS)—represents the current apex of parallel computing evolution. This frontier is not merely about stacking more silicon; it requires a fundamental rethinking of the entire computing stack, from the transistor to the algorithm. In the past, performance gains were driven by Dennard Scaling, where smaller transistors consumed less power and could switch faster. That era ended around 2005 due to thermal limits, forcing the shift to multi-core designs. Today, we face a new barrier: the energy cost of moving data. In modern high-performance systems, moving a byte of data from memory to the processor consumes orders of magnitude more energy than performing a floating-point operation on that byte. Consequently, Exascale architectures are designed to be strictly "data-centric," prioritizing data locality above all else to keep the power budget within a manageable 20-30 megawatts. This hardware reality imposes severe constraints on software. The traditional bulk-synchronous parallel (BSP) model, where all processors compute for a while and then synchronize at a global barrier, is becoming untenable at the Exascale level. With millions of cores, the probability of one core running slow (OS jitter) or failing completely increases dramatically. If the entire machine waits for the slowest node, performance collapses. Therefore, modern parallel algorithms are shifting toward asynchronous, task-based runtime systems. In these models, the computation is broken into a directed acyclic graph (DAG) of small tasks with dependencies. As soon as a task\'s inputs are ready, it is scheduled on any available resource. This dynamic approach naturally absorbs load imbalances and hides latency. Furthermore, fault tolerance has moved from being a hardware concern to a software responsibility. In a system with millions of components, the mean time between failures (MTBF) might be measured in hours. Traditional checkpoint/restart mechanisms, which dump the entire system memory to disk, take too long and stress the storage I/O subsystems too heavily. Exascale applications must employ multi-level checkpointing (saving state to local NVRAM or SSDs) or algorithmic fault tolerance, where the mathematics of the simulation can survive the loss of a node without needing a hard restart. Finally, the heterogeneity of these systems adds another layer of complexity. An Exascale node typically pairs a modest CPU with several powerful accelerators (GPUs). This requires programmers to manage distinct memory spaces and program using hybrid models like MPI + OpenMP + CUDA/HIP. They must manually manage data movement across the PCIe bus, optimize kernel launch parameters, and ensure that the accelerators are fed enough data to hide their massive latency. It is a discipline where the abstraction layers are peeling away, forcing physicists and chemists to become experts in computer architecture. The ultimate challenge in achieving sustained Exascale performance is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[  464,  7002,  3812,  1475,  3372,  1000, 14492,   960, 10057,    82,
+          6007,   286,  9489,   530, 28533,  1131, 12462,    12,  4122,  4560,
+           583,  1218,   357,   940,    61,  1507,  9977, 30737, 27920,  7856,
+          6629,   262,  1459, 40167,   286, 10730, 14492,  6954,    13,   770,
+         27580,   318,   407,  6974,   546, 41228,   517, 29867,    26,   340,
+          4433,   257,  7531,   302, 28973,   286,   262,  2104, 14492,  8931,
+            11,   422,   262, 49176,   284,   262, 11862,    13,   554,   262,
+          1613,    11,  2854,  8810,   547,  7986,   416,   360,  1697,   446,
+          1446,  4272,    11,   810,  4833,  1007, 46334, 13529,  1342,  1176,
+           290,   714,  5078,  5443,    13,  1320,  6980,  4444,  1088,  5075,
+          2233,   284, 18411,  7095,    11, 10833,   262,  6482,   284,  5021,
+            12,  7295,  9824,    13,  6288,    11,   356,  1986,   257,   649,
+         13054,    25,   262,  2568,  1575,   286,  3867,  1366,    13,   554,
+          3660,  1029,    12, 26585,  3341,    11,  3867,   257, 18022,   286,
+          1366,   422,  4088,   284,   262, 12649, 37225,  6266,   286, 14735,
+           517,  2568,   621,  9489,   257, 12462,    12,  4122,  4905,   319,
+           326, 18022,    13, 24982,    11,  1475,  3372,  1000, 45619,   389,
+          3562,   284,   307, 14084,   366,  7890,    12, 28577,   553, 19086,
+          2890,  1366, 48036,  2029,   477,  2073,   284,  1394,   262,  1176,
+          4466,  1626,   257, 36426,  1160,    12,  1270, 17243, 46684,    13,
+           770,  6890,  3950, 36794,  6049, 17778,   319,  3788,    13,   383,
+          4569, 11963,    12, 28869, 11413,   516, 10730,   357,    33,  4303,
+             8,  2746,    11,   810,   477, 20399, 24061,   329,   257,   981,
+           290,   788, 18305,  1096,   379,   257,  3298, 13054,    11,   318,
+          5033,  1418, 21633,   379,   262,  1475,  3372,  1000,  1241,    13,
+          2080,  5242,   286, 21758,    11,   262, 12867,   286,   530,  4755,
+          2491,  3105,   357,  2640,   474,  1967,     8,   393,  9894,  3190,
+          5732, 12034,    13,  1002,   262,  2104,  4572, 28364,   329,   262,
+          3105,   395, 10139,    11,  2854, 35752,    13,  8447,    11,  3660,
+         10730, 16113,   389, 15852,  3812, 39354,    11,  4876,    12,  3106,
+         19124,  3341,    13,   554,   777,  4981,    11,   262, 29964,   318,
+          5445,   656,   257,  7924,   936,    88,   565,   291,  4823,   357,
+            35,  4760,     8,   286,  1402,  8861,   351, 20086,    13,  1081,
+          2582,   355,   257,  4876,   338, 17311,   389,  3492,    11,   340,
+           318,  7530,   319,   597,  1695,  8271,    13,   770,  8925,  3164,
+          8752, 42909,  3440,   545,  6893,  1817,   290, 30768, 24812,    13,
+         11399,    11,  8046, 15621,   468,  3888,   422,   852,   257,  6890,
+          2328,   284,   257,  3788,  5798,    13,   554,   257,  1080,   351,
+          5242,   286,  6805,    11,   262,  1612,   640,  1022, 15536,   357,
+         13752, 29499,     8,  1244,   307,  8630,   287,  2250,    13, 29065,
+         26954,    14,  2118,   433, 11701,    11,   543, 10285,   262,  2104,
+          1080,  4088,   284, 11898,    11,  1011,  1165,   890,   290,  5503,
+           262,  6143,   314,    14,    46, 39335,    82,  1165,  7272,    13,
+          1475,  3372,  1000,  5479,  1276,  1873,  5021,    12,  5715, 26954,
+           278,   357, 29336,  1181,   284,  1957,   399, 13024,  2390,   393,
+         21252,    82,     8,   393,  8385,  9383,  8046, 15621,    11,   810,
+           262, 19473,   286,   262, 18640,   460,  7866,   262,  2994,   286,
+           257, 10139,  1231, 18139,   257,  1327, 15765,    13,  9461,    11,
+           262, 49763,   286,   777,  3341,  6673,  1194,  7679,   286, 13357,
+            13,  1052,  1475,  3372,  1000, 10139,  6032, 14729,   257, 12949,
+          9135,   351,  1811,  3665,  8320,  2024,   357, 33346,    82,   737,
+           770,  4433, 24867,   284,  6687,  7310,  4088,  9029,   290,  1430,
+          1262, 14554,  4981,   588,  4904,    40,  1343,  4946,  7378,  1343,
+         29369,  5631,    14,    39,  4061,    13,  1119,  1276, 14500,  6687,
+          1366,  3356,  1973,   262, 41825,  1323,    11, 27183,  9720,  4219,
+         10007,    11,   290,  4155,   326,   262,  8320,  2024,   389, 11672,
+          1576,  1366,   284,  7808,   511,  4858, 24812,    13,   632,   318,
+           257, 12883,   810,   262, 34651, 11685,   389,   613, 10809,  1497,
+            11, 10833, 37898,   290,  4607,  1023,   284,  1716,  6154,   287,
+          3644, 10959,    13,   383,  8713,  4427,   287, 16937, 12605,  1475,
+          3372,  1000,  2854,   318]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' to'
+[PYTHON][INFO] Saving to data/33/input_ids.bin
+[PYTHON][INFO] Saving to data/33/probs.bin
+[PYTHON][TRACE] text = 'For the better part of the computing history, performance improvements were largely a free lunch provided by the steady march of Moore\'s Law and Dennard Scaling. Programmers could write sequential code, relying on the fact that the next generation of processors would simply execute those instructions faster due to increased clock speeds and transistor density. However, as the physical limits of power dissipation and heat generation—the so-called "Power Wall"—were reached in the mid-2000s, the industry was forced to pivot. We could no longer make a single engine faster, so we began adding more engines. This marked the definitive transition from the era of serial processing to the era of ubiquitous parallel computing, a paradigm shift that fundamentally altered software engineering, hardware architecture, and algorithm design. This shift introduced a level of complexity that simply did not exist in the sequential world. In a serial environment, the state of the machine is deterministic and predictable; instruction A happens before instruction B. In a parallel environment, however, we enter the realm of non-determinism. When a task is decomposed into multiple sub-tasks running on separate threads or cores, the order of execution is no longer guaranteed. This necessitates the introduction of synchronization primitives—mutexes, semaphores, and barriers—to prevent race conditions where two threads attempt to modify the same memory address simultaneously. While these tools ensure correctness, they introduce their own penalties: the overhead of context switching and the danger of deadlock, a situation where two processes halt indefinitely, each waiting for a resource held by the other. As we scale beyond a single multi-core CPU to High-Performance Computing (HPC) clusters and supercomputers, the challenge shifts from managing threads to managing distinct memory spaces. In distributed memory systems, typically orchestrated by the Message Passing Interface (MPI), there is no shared address space. If Processor A needs data calculated by Processor B, that data must be explicitly packaged and transmitted over the network. This introduces the concept of the "communication-to-computation ratio." If a program spends more time moving data between nodes than it does actually processing that data, the addition of more hardware paradoxically slows the system down. This reality is mathematically modeled by Amdahl\'s Law, which strictly limits theoretical speedup based on the percentage of the code that must remain serial. In the modern era, this landscape has been further complicated and accelerated by heterogeneous computing. We no longer rely solely on general-purpose CPUs; we now offload massive amounts of data-parallel work to Graphics Processing Units (GPUs) and other specialized accelerators. This architecture is particularly dominant in the training of Large Language Models (LLMs) and deep learning, where matrix multiplications are distributed across thousands of cores. Here, the complexity lies not just in calculation, but in memory bandwidth and hierarchy—managing the flow of data from slow disk storage to system RAM, across the PCIe bus to GPU memory, and finally into the registers. The programmer must now think in terms of grids, blocks, and warps, carefully orchestrating memory coalescence to utilize the hardware fully. Ultimately, the quest for Exascale computing requires solving problems at every layer of the stack, from the physical interconnects cabling thousands of nodes together to the algorithmic decomposition of physics simulations or neural network training runs. It is a discipline where hardware constraints dictate software design, and where the ideal of perfect scalability is constantly at war with the realities of latency and bandwidth. The critical trade-off between fine-grained parallelism and the overhead of synchronization is'
+[PYTHON][TRACE] inputs = {'input_ids': tensor([[ 1890,   262,  1365,   636,   286,   262, 14492,  2106,    11,  2854,
+          8561,   547,  5688,   257,  1479,  9965,  2810,   416,   262, 11831,
+          9960,   286,  8877,   338,  3854,   290,   360,  1697,   446,  1446,
+          4272,    13,  6118, 11056,   714,  3551, 35582,  2438,    11, 17965,
+           319,   262,  1109,   326,   262,  1306,  5270,   286, 20399,   561,
+          2391, 12260,   883,  7729,  5443,  2233,   284,  3220,  8801, 12055,
+           290, 49176, 12109,    13,  2102,    11,   355,   262,  3518,  7095,
+           286,  1176,  6249, 25857,   290,  4894,  5270,   960,  1169,   523,
+            12,  7174,   366, 13434,  5007, 15327, 22474,  4251,   287,   262,
+          3095,    12, 11024,    82,    11,   262,  2831,   373,  4137,   284,
+         30355,    13,   775,   714,   645,  2392,   787,   257,  2060,  3113,
+          5443,    11,   523,   356,  2540,  4375,   517, 11874,    13,   770,
+          7498,   262, 17347,  6801,   422,   262,  6980,   286, 11389,  7587,
+           284,   262,  6980,   286, 27888, 10730, 14492,    11,   257, 23457,
+          6482,   326, 17640, 14294,  3788,  8705,    11,  6890, 10959,    11,
+           290, 11862,  1486,    13,   770,  6482,  5495,   257,  1241,   286,
+         13357,   326,  2391,   750,   407,  2152,   287,   262, 35582,   995,
+            13,   554,   257, 11389,  2858,    11,   262,  1181,   286,   262,
+          4572,   318,  2206, 49228,   290, 20039,    26, 12064,   317,  4325,
+           878, 12064,   347,    13,   554,   257, 10730,  2858,    11,  2158,
+            11,   356,  3802,   262, 13360,   286,  1729,    12,    67, 13221,
+          1042,    13,  1649,   257,  4876,   318, 38237,  1335,   656,  3294,
+           850,    12,    83,  6791,  2491,   319,  4553, 14390,   393, 21758,
+            11,   262,  1502,   286,  9706,   318,   645,  2392, 11462,    13,
+           770,  2418, 38654,   262,  9793,   286, 42133,  2684, 20288,   960,
+         21973,  1069,   274,    11,  5026,  6570,  2850,    11,   290, 14725,
+           960,  1462,  2948,  3234,  3403,   810,   734, 14390,  2230,   284,
+         13096,   262,   976,  4088,  2209, 11640,    13,  2893,   777,  4899,
+          4155, 29409,    11,   484, 10400,   511,   898, 12970,    25,   262,
+         16965,   286,  4732, 15430,   290,   262,  3514,   286,  2636,  5354,
+            11,   257,  3074,   810,   734,  7767, 17369, 24391,    11,  1123,
+          4953,   329,   257,  8271,  2714,   416,   262,   584,    13,  1081,
+           356,  5046,  3675,   257,  2060,  5021,    12,  7295,  9135,   284,
+          3334,    12, 32273, 38589,   357,    39,  5662,     8, 23163,   290,
+          2208,   785, 41510,    11,   262,  4427, 15381,   422, 11149, 14390,
+           284, 11149,  7310,  4088,  9029,    13,   554,  9387,  4088,  3341,
+            11,  6032, 37728,   416,   262, 16000, 46389, 26491,   357,  7378,
+            40,   828,   612,   318,   645,  4888,  2209,  2272,    13,  1002,
+         32893,   317,  2476,  1366, 10488,   416, 32893,   347,    11,   326,
+          1366,  1276,   307, 11777, 25555,   290, 18307,   625,   262,  3127,
+            13,   770, 20718,   262,  3721,   286,   262,   366, 32560,    12,
+          1462,    12,   785,  1996,   341,  8064,   526,  1002,   257,  1430,
+         16887,   517,   640,  3867,  1366,  1022, 13760,   621,   340,   857,
+          1682,  7587,   326,  1366,    11,   262,  3090,   286,   517,  6890,
+         22226,  1146, 33019,   262,  1080,   866,    13,   770,  3950,   318,
+          2603, 46558, 29563,   416,  1703,    67, 15668,   338,  3854,    11,
+           543, 14084,  7095, 16200,  2866,   929,  1912,   319,   262,  5873,
+           286,   262,  2438,   326,  1276,  3520, 11389,    13,   554,   262,
+          3660,  6980,    11,   428, 10747,   468,   587,  2252,  8253,   290,
+         23312,   416, 14445, 32269, 14492,    13,   775,   645,  2392,  8814,
+          9944,   319,  2276,    12, 29983, 32340,    26,   356,   783,   572,
+          2220,  4858,  6867,   286,  1366,    12,  1845, 29363,   670,   284,
+         19840, 28403, 27719,   357, 33346,    82,     8,   290,   584, 16976,
+          8320,  2024,    13,   770, 10959,   318,  3573, 11410,   287,   262,
+          3047,   286, 13601, 15417, 32329,   357,  3069, 10128,     8,   290,
+          2769,  4673,    11,   810, 17593, 15082,  3736,   389,  9387,  1973,
+          4138,   286, 21758,    13,  3423,    11,   262, 13357,  7363,   407,
+           655,   287, 17952,    11,   475,   287,  4088, 19484,   290, 18911,
+           960,   805,  3039,   262,  5202,   286,  1366,   422,  3105, 11898,
+          6143,   284,  1080, 13931,    11,  1973,   262, 41825,  1323,   284,
+         11362,  4088,    11,   290,  3443,   656,   262, 28441,    13,   383,
+         24292,  1276,   783,   892,   287,  2846,   286, 50000,    11,  7021,
+            11,   290,  1175,   862,    11,  7773, 28127,   803,  4088, 46064,
+         43696,   284, 17624,   262,  6890,  3938,    13, 24199,    11,   262,
+          1235,   329,  1475,  3372,  1000, 14492,  4433, 18120,  2761,   379,
+           790,  7679,   286,   262,  8931,    11,   422,   262,  3518,   987,
+          8443,    82,   269, 11716,  4138,   286, 13760,  1978,   284,   262,
+          8385,  9383, 26969,  9150,   286, 11887, 27785,   393, 17019,  3127,
+          3047,  4539,    13,   632,   318,   257, 12883,   810,  6890, 17778,
+         27861,  3788,  1486,    11,   290,   810,   262,  7306,   286,  2818,
+         16578,  1799,   318,  7558,   379,  1175,   351,   262, 22072,   286,
+         24812,   290, 19484,    13,   383,  4688,  3292,    12,  2364,  1022,
+          3734,    12,  2164,  1328, 10730,  1042,   290,   262, 16965,   286,
+         42133,   318]], device='cuda:0'), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
+[PYTHON][TRACE] predicted_token = ' the'
+[PYTHON][INFO] Saving to data/34/input_ids.bin
+[PYTHON][INFO] Saving to data/34/probs.bin
+[SLURM][INFO] Run finished at Fri Nov 28 08:39:55 PM KST 2025
