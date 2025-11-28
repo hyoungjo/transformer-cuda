@@ -1,5 +1,9 @@
 {
     "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit",
+        "source.organizeImports": "explicit",
+    },
     "clangd.arguments": [
         "--background-index",
         "--query-driver=/home/hyoungjo/miniconda3/envs/cuda/bin/*",
