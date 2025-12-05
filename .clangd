@@ -8,3 +8,4 @@ CompileFlags:
   Compiler: /home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++
   Add:
     - "--cuda-path=/home/hyoungjo/miniconda3/envs/cuda"
+    - -I/home/hyoungjo/transformer-cuda/cpp/include
