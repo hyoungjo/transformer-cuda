@@ -1,0 +1,226 @@
+make -C cpp
+make[1]: Entering directory '/home/hyoungjo/transformer-cuda/cpp'
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O0 -Iinclude -c source/tensor.cpp -o source/tensor.o
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O0 -Iinclude -c source/operations.cpp -o source/operations.o
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O0 -Iinclude -c source/utils.cpp -o source/utils.o
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O0 -Iinclude -c source/gpt2.cpp -o source/gpt2.o
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O0 -Iinclude -c source/main.cpp -o source/main.o
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O0 -Iinclude source/tensor.o source/operations.o source/utils.o source/gpt2.o source/main.o -o main
+make[1]: Leaving directory '/home/hyoungjo/transformer-cuda/cpp'
+[SLURM][INFO] Run started on baram at Sat Dec  6 04:59:48 AM KST 2025
+[CPP][INFO] Loading model weights...
+[CPP][INFO] Loading data from data/weights.bin
+[CPP][INFO] Starting inference loop [0, 35)
+[CPP][INFO] Loading data from data/0/input_ids.bin
+[CPP][TRACE] Input size: 6 tokens
+[CPP][TRACE] Predicted token_id: 3716
+[CPP][TRACE] Max probability: 0.0555875
+[CPP][INFO] Loading data from data/0/probs.bin
+[CPP][INFO] Sample 0 Passed | Max Error: 5.97537e-06
+[CPP][INFO] Loading data from data/1/input_ids.bin
+[CPP][TRACE] Input size: 8 tokens
+[CPP][TRACE] Predicted token_id: 326
+[CPP][TRACE] Max probability: 0.223665
+[CPP][INFO] Loading data from data/1/probs.bin
+[CPP][INFO] Sample 1 Passed | Max Error: 3.50773e-05
+[CPP][INFO] Loading data from data/2/input_ids.bin
+[CPP][TRACE] Input size: 13 tokens
+[CPP][TRACE] Predicted token_id: 318
+[CPP][TRACE] Max probability: 0.15132
+[CPP][INFO] Loading data from data/2/probs.bin
+[CPP][INFO] Sample 2 Passed | Max Error: 2.03848e-05
+[CPP][INFO] Loading data from data/3/input_ids.bin
+[CPP][TRACE] Input size: 10 tokens
+[CPP][TRACE] Predicted token_id: 262
+[CPP][TRACE] Max probability: 0.676985
+[CPP][INFO] Loading data from data/3/probs.bin
+[CPP][INFO] Sample 3 Passed | Max Error: 0.000110209
+[CPP][INFO] Loading data from data/4/input_ids.bin
+[CPP][TRACE] Input size: 7 tokens
+[CPP][TRACE] Predicted token_id: 340
+[CPP][TRACE] Max probability: 0.117508
+[CPP][INFO] Loading data from data/4/probs.bin
+[CPP][INFO] Sample 4 Passed | Max Error: 1.97962e-05
+[CPP][INFO] Loading data from data/5/input_ids.bin
+[CPP][TRACE] Input size: 10 tokens
+[CPP][TRACE] Predicted token_id: 640
+[CPP][TRACE] Max probability: 0.051555
+[CPP][INFO] Loading data from data/5/probs.bin
+[CPP][INFO] Sample 5 Passed | Max Error: 9.26107e-06
+[CPP][INFO] Loading data from data/6/input_ids.bin
+[CPP][TRACE] Input size: 13 tokens
+[CPP][TRACE] Predicted token_id: 523
+[CPP][TRACE] Max probability: 0.216838
+[CPP][INFO] Loading data from data/6/probs.bin
+[CPP][INFO] Sample 6 Passed | Max Error: 3.18587e-05
+[CPP][INFO] Loading data from data/7/input_ids.bin
+[CPP][TRACE] Input size: 9 tokens
+[CPP][TRACE] Predicted token_id: 3650
+[CPP][TRACE] Max probability: 0.0887161
+[CPP][INFO] Loading data from data/7/probs.bin
+[CPP][INFO] Sample 7 Passed | Max Error: 1.12653e-05
+[CPP][INFO] Loading data from data/8/input_ids.bin
+[CPP][TRACE] Input size: 14 tokens
+[CPP][TRACE] Predicted token_id: 326
+[CPP][TRACE] Max probability: 0.487998
+[CPP][INFO] Loading data from data/8/probs.bin
+[CPP][INFO] Sample 8 Passed | Max Error: 0.00010553
+[CPP][INFO] Loading data from data/9/input_ids.bin
+[CPP][TRACE] Input size: 7 tokens
+[CPP][TRACE] Predicted token_id: 318
+[CPP][TRACE] Max probability: 0.316309
+[CPP][INFO] Loading data from data/9/probs.bin
+[CPP][INFO] Sample 9 Passed | Max Error: 5.51343e-05
+[CPP][INFO] Loading data from data/10/input_ids.bin
+[CPP][TRACE] Input size: 11 tokens
+[CPP][TRACE] Predicted token_id: 257
+[CPP][TRACE] Max probability: 0.407389
+[CPP][INFO] Loading data from data/10/probs.bin
+[CPP][INFO] Sample 10 Passed | Max Error: 9.60231e-05
+[CPP][INFO] Loading data from data/11/input_ids.bin
+[CPP][TRACE] Input size: 7 tokens
+[CPP][TRACE] Predicted token_id: 307
+[CPP][TRACE] Max probability: 0.423797
+[CPP][INFO] Loading data from data/11/probs.bin
+[CPP][INFO] Sample 11 Passed | Max Error: 6.21974e-05
+[CPP][INFO] Loading data from data/12/input_ids.bin
+[CPP][TRACE] Input size: 7 tokens
+[CPP][TRACE] Predicted token_id: 262
+[CPP][TRACE] Max probability: 0.176499
+[CPP][INFO] Loading data from data/12/probs.bin
+[CPP][INFO] Sample 12 Passed | Max Error: 1.1906e-05
+[CPP][INFO] Loading data from data/13/input_ids.bin
+[CPP][TRACE] Input size: 6 tokens
+[CPP][TRACE] Predicted token_id: 262
+[CPP][TRACE] Max probability: 0.2305
+[CPP][INFO] Loading data from data/13/probs.bin
+[CPP][INFO] Sample 13 Passed | Max Error: 2.25455e-05
+[CPP][INFO] Loading data from data/14/input_ids.bin
+[CPP][TRACE] Input size: 10 tokens
+[CPP][TRACE] Predicted token_id: 389
+[CPP][TRACE] Max probability: 0.22862
+[CPP][INFO] Loading data from data/14/probs.bin
+[CPP][INFO] Sample 14 Passed | Max Error: 3.79235e-05
+[CPP][INFO] Loading data from data/15/input_ids.bin
+[CPP][TRACE] Input size: 7 tokens
+[CPP][TRACE] Predicted token_id: 307
+[CPP][TRACE] Max probability: 0.427777
+[CPP][INFO] Loading data from data/15/probs.bin
+[CPP][INFO] Sample 15 Passed | Max Error: 6.35982e-05
+[CPP][INFO] Loading data from data/16/input_ids.bin
+[CPP][TRACE] Input size: 8 tokens
+[CPP][TRACE] Predicted token_id: 2948
+[CPP][TRACE] Max probability: 0.226755
+[CPP][INFO] Loading data from data/16/probs.bin
+[CPP][INFO] Sample 16 Passed | Max Error: 3.85791e-05
+[CPP][INFO] Loading data from data/17/input_ids.bin
+[CPP][TRACE] Input size: 7 tokens
+[CPP][TRACE] Predicted token_id: 389
+[CPP][TRACE] Max probability: 0.262924
+[CPP][INFO] Loading data from data/17/probs.bin
+[CPP][INFO] Sample 17 Passed | Max Error: 4.33624e-05
+[CPP][INFO] Loading data from data/18/input_ids.bin
+[CPP][TRACE] Input size: 6 tokens
+[CPP][TRACE] Predicted token_id: 262
+[CPP][TRACE] Max probability: 0.17147
+[CPP][INFO] Loading data from data/18/probs.bin
+[CPP][INFO] Sample 18 Passed | Max Error: 1.56015e-05
+[CPP][INFO] Loading data from data/19/input_ids.bin
+[CPP][TRACE] Input size: 10 tokens
+[CPP][TRACE] Predicted token_id: 257
+[CPP][TRACE] Max probability: 0.302151
+[CPP][INFO] Loading data from data/19/probs.bin
+[CPP][INFO] Sample 19 Passed | Max Error: 4.57168e-05
+[CPP][INFO] Loading data from data/20/input_ids.bin
+[CPP][TRACE] Input size: 10 tokens
+[CPP][TRACE] Predicted token_id: 286
+[CPP][TRACE] Max probability: 0.169548
+[CPP][INFO] Loading data from data/20/probs.bin
+[CPP][INFO] Sample 20 Passed | Max Error: 2.67923e-05
+[CPP][INFO] Loading data from data/21/input_ids.bin
+[CPP][TRACE] Input size: 6 tokens
+[CPP][TRACE] Predicted token_id: 389
+[CPP][TRACE] Max probability: 0.426913
+[CPP][INFO] Loading data from data/21/probs.bin
+[CPP][INFO] Sample 21 Passed | Max Error: 8.85427e-05
+[CPP][INFO] Loading data from data/22/input_ids.bin
+[CPP][TRACE] Input size: 7 tokens
+[CPP][TRACE] Predicted token_id: 262
+[CPP][TRACE] Max probability: 0.123877
+[CPP][INFO] Loading data from data/22/probs.bin
+[CPP][INFO] Sample 22 Passed | Max Error: 4.99189e-06
+[CPP][INFO] Loading data from data/23/input_ids.bin
+[CPP][TRACE] Input size: 8 tokens
+[CPP][TRACE] Predicted token_id: 262
+[CPP][TRACE] Max probability: 0.129607
+[CPP][INFO] Loading data from data/23/probs.bin
+[CPP][INFO] Sample 23 Passed | Max Error: 2.61515e-06
+[CPP][INFO] Loading data from data/24/input_ids.bin
+[CPP][TRACE] Input size: 13 tokens
+[CPP][TRACE] Predicted token_id: 257
+[CPP][TRACE] Max probability: 0.146997
+[CPP][INFO] Loading data from data/24/probs.bin
+[CPP][INFO] Sample 24 Passed | Max Error: 2.01911e-05
+[CPP][INFO] Loading data from data/25/input_ids.bin
+[CPP][TRACE] Input size: 17 tokens
+[CPP][TRACE] Predicted token_id: 326
+[CPP][TRACE] Max probability: 0.562207
+[CPP][INFO] Loading data from data/25/probs.bin
+[CPP][INFO] Sample 25 Passed | Max Error: 7.18832e-05
+[CPP][INFO] Loading data from data/26/input_ids.bin
+[CPP][TRACE] Input size: 64 tokens
+[CPP][TRACE] Predicted token_id: 326
+[CPP][TRACE] Max probability: 0.366911
+[CPP][INFO] Loading data from data/26/probs.bin
+[CPP][INFO] Sample 26 Passed | Max Error: 5.24819e-05
+[CPP][INFO] Loading data from data/27/input_ids.bin
+[CPP][TRACE] Input size: 102 tokens
+[CPP][TRACE] Predicted token_id: 326
+[CPP][TRACE] Max probability: 0.543039
+[CPP][INFO] Loading data from data/27/probs.bin
+[CPP][INFO] Sample 27 Passed | Max Error: 6.83665e-05
+[CPP][INFO] Loading data from data/28/input_ids.bin
+[CPP][TRACE] Input size: 144 tokens
+[CPP][TRACE] Predicted token_id: 262
+[CPP][TRACE] Max probability: 0.125828
+[CPP][INFO] Loading data from data/28/probs.bin
+[CPP][INFO] Sample 28 Passed | Max Error: 1.17868e-05
+[CPP][INFO] Loading data from data/29/input_ids.bin
+[CPP][TRACE] Input size: 162 tokens
+[CPP][TRACE] Predicted token_id: 262
+[CPP][TRACE] Max probability: 0.319353
+[CPP][INFO] Loading data from data/29/probs.bin
+[CPP][INFO] Sample 29 Passed | Max Error: 3.89814e-05
+[CPP][INFO] Loading data from data/30/input_ids.bin
+[CPP][TRACE] Input size: 163 tokens
+[CPP][TRACE] Predicted token_id: 262
+[CPP][TRACE] Max probability: 0.210247
+[CPP][INFO] Loading data from data/30/probs.bin
+[CPP][INFO] Sample 30 Passed | Max Error: 3.62247e-05
+[CPP][INFO] Loading data from data/31/input_ids.bin
+[CPP][TRACE] Input size: 200 tokens
+[CPP][TRACE] Predicted token_id: 1900
+[CPP][TRACE] Max probability: 0.0423933
+[CPP][INFO] Loading data from data/31/probs.bin
+[CPP][INFO] Sample 31 Passed | Max Error: 9.045e-06
+[CPP][INFO] Loading data from data/32/input_ids.bin
+[CPP][TRACE] Input size: 180 tokens
+[CPP][TRACE] Predicted token_id: 326
+[CPP][TRACE] Max probability: 0.671602
+[CPP][INFO] Loading data from data/32/probs.bin
+[CPP][INFO] Sample 32 Passed | Max Error: 0.00011766
+[CPP][INFO] Loading data from data/33/input_ids.bin
+[CPP][TRACE] Input size: 604 tokens
+[CPP][TRACE] Predicted token_id: 284
+[CPP][TRACE] Max probability: 0.306667
+[CPP][INFO] Loading data from data/33/probs.bin
+[CPP][INFO] Sample 33 Passed | Max Error: 3.03984e-05
+[CPP][INFO] Loading data from data/34/input_ids.bin
+[CPP][TRACE] Input size: 732 tokens
+[CPP][TRACE] Predicted token_id: 262
+[CPP][TRACE] Max probability: 0.217886
+[CPP][INFO] Loading data from data/34/probs.bin
+[CPP][INFO] Sample 34 Passed | Max Error: 3.65227e-05
+------------------------------------------------
+[CPP][INFO] Final Result: 35/35 passed.
+[SLURM][INFO] Run finished at Sat Dec  6 06:51:31 AM KST 2025
