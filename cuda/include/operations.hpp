@@ -13,6 +13,9 @@
 
 namespace operations {
 
+void embedding(Tensor &x, const Tensor &wte, const Tensor &wpe,
+               const std::vector<int> &input_ids);
+
 void transpose(Tensor &x);
 void matmul(Tensor &out, const Tensor &A, const Tensor &B);
 

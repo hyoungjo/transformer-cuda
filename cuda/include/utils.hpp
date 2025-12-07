@@ -13,6 +13,7 @@ template <typename T> T read_item(std::ifstream &file) {
   return val;
 }
 
-std::map<std::string, Tensor> load_data(const std::string &path);
+std::map<std::string, Tensor> load_data(const std::string &path,
+                                        std::string device);
 
 } // namespace utils

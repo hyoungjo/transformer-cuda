@@ -21,7 +21,7 @@ int main() {
   for (int i = 0; i < total; ++i) {
     std::string data_path = "data/" + std::to_string(i);
 
-    auto input_data = utils::load_data(data_path + "/input_ids.bin");
+    auto input_data = utils::load_data(data_path + "/input_ids.bin", "cpu");
     std::vector<int> input_ids;
     for (float id : input_data["input_ids"]) {
       input_ids.push_back(static_cast<int>(id));
@@ -31,8 +31,9 @@ int main() {
               << std::endl;
 
     Tensor logits = model.forward(input_ids);
-    Tensor probs = logits; // shallow copy, no copy constructor
+    Tensor probs = std::move(logits);
     operations::softmax(probs);
+    probs.to("cpu");
 
     int64_t token_id = 0;
     float max_prob = -1e9;
@@ -46,7 +47,7 @@ int main() {
     std::cout << "[CUDA][TRACE] Predicted token_id: " << token_id << std::endl;
     std::cout << "[CUDA][TRACE] Max probability: " << max_prob << std::endl;
 
-    auto expected_data = utils::load_data(data_path + "/probs.bin");
+    auto expected_data = utils::load_data(data_path + "/probs.bin", "cpu");
     Tensor &expected_probs = expected_data["probs"];
 
     float max_err = 0.0f;
