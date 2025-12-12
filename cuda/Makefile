@@ -5,14 +5,20 @@
 NVCC := $(HOME)/miniconda3/envs/cuda/bin/nvcc
 
 # -Xcompiler takes the next parameter to the CPU compiler
-NVCCFLAGS := -arch=sm_86 -Xcompiler -Wall,-Wextra -O0
+NVCCFLAGS := -arch=sm_86 -Xcompiler -Wall,-Wextra -O3
 
 INCLUDE := -Iinclude
 
-SRCS := source/tensor.cu source/operations.cu source/utils.cu source/gpt2.cu source/main.cu
-OBJS = $(SRCS:.cu=.o)
+COMMON_SRCS := source/tensor.cu source/operations.cu source/utils.cu source/gpt2.cu
+COMMON_OBJS := $(COMMON_SRCS:.cu=.o)
 
-TARGET := main
+MAIN_SRC := source/main.cu
+MAIN_OBJ := $(MAIN_SRC:.cu=.o)
+
+TIMER_SRC := source/timer.cu
+TIMER_OBJ := $(TIMER_SRC:.cu=.o)
+
+TARGETS := main timer
 
 # ------------------------------------------------------------
 # Build Rules
@@ -20,13 +26,16 @@ TARGET := main
 
 .PHONY: all clean
 
-all: $(TARGET)
+all: $(TARGETS)
 
-$(TARGET): $(OBJS)
-	$(NVCC) $(NVCCFLAGS) $(INCLUDE) $(OBJS) -o $(TARGET)
+main: $(COMMON_OBJS) $(MAIN_OBJ)
+	$(NVCC) $(NVCCFLAGS) $(INCLUDE) $^ -o $@
+
+timer: $(COMMON_OBJS) $(TIMER_OBJ)
+	$(NVCC) $(NVCCFLAGS) $(INCLUDE) $^ -o $@
 
 %.o: %.cu
 	$(NVCC) $(NVCCFLAGS) $(INCLUDE) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(COMMON_OBJS) $(MAIN_OBJ) $(TIMER_OBJ) $(TARGETS)
