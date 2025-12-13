@@ -43,7 +43,7 @@ int main() {
       auto start = high_resolution_clock::now();
       Tensor logits = model.forward(input_ids);
       auto end = high_resolution_clock::now();
-      auto execution_time = duration_cast<milliseconds>(end - start).count();
+      auto execution_time = duration_cast<microseconds>(end - start).count();
       durations.push_back(execution_time);
     }
 
@@ -66,8 +66,8 @@ int main() {
     double iqr = q3 - q1;
 
     std::cout << "Text " << i << " | Seq Len: " << input_ids.size()
-              << "\n   Median: " << median << " ms"
-              << "\n   IQR:    " << iqr << " ms (" << q1 << " to " << q3 << ")"
+              << "\n   Median: " << median << " μs"
+              << "\n   IQR:    " << iqr << " μs (" << q1 << " to " << q3 << ")"
               << "\n   " << WARMUPS << " warmups, " << ITERATIONS
               << " iterations" << std::endl;
 
