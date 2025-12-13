@@ -11,65 +11,100 @@
  */
 
 /**
- * Extract specific Q, K, V head from the QKV tensor
- * [Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h]
+ * Calculates the attention output given the query, key, and value matrices.
  *
- * section_idx: Q = 0, K = 1, V = 2
- */
-__global__ void extract_head_kernel(float *out, const float *qkv, int seq_len,
-                                    int hidden_size, int head_dim, int head_idx,
-                                    int section_idx) {
-  int row = blockIdx.x * blockDim.x + threadIdx.x;
-  int col = blockIdx.y * blockDim.y + threadIdx.y;
-
-  if (row < seq_len && col < head_dim) {
-    int col_offset = section_idx * hidden_size + head_idx * head_dim;
-
-    int input_idx = row * (3 * hidden_size) + col_offset + col;
-    int output_idx = row * head_dim + col;
-
-    out[output_idx] = qkv[input_idx];
-  }
-}
-
-/**
- * Save the attention head's final value
- * [H_1, H_2, .., H_h]
- */
-__global__ void insert_head_kernel(float *out, const float *head_out,
-                                   int seq_len, int hidden_size, int head_dim,
-                                   int head_idx) {
-  int row = blockIdx.x * blockDim.x + threadIdx.x;
-  int col = blockIdx.y * blockDim.y + threadIdx.y;
-
-  if (row < seq_len && col < head_dim) {
-    int col_offset = head_idx * head_dim;
-
-    int input_idx = row * head_dim + col; // head
-    int output_idx = row * hidden_size + col_offset + col;
-
-    out[output_idx] = head_out[input_idx];
-  }
-}
-
-/**
- * Apply causal mask to the attention scores and scale.
+ * This is a fused multi-head attention kernel, that calculates the attention
+ * score, applies causal masking and scaling, performs online softmax and value
+ * aggregation.
  *
- * Q * K^T / sqrt(d_k)
+ * grid_dims: (seq_len, num_heads)
+ * block_dims: (head_dim)
+ *
+ * A block calculates the attention output for a token, head pair.
  */
-__global__ void causal_mask_and_scale_kernel(float *scores, int seq_len,
-                                             float scale) {
-  int row = blockIdx.x * blockDim.x + threadIdx.x;
-  int col = blockIdx.y * blockDim.y + threadIdx.y;
+__global__ void multi_head_attention_kernel(float *output, const float *qkv,
+                                            int seq_len, int hidden_size,
+                                            int head_dim) {
+  int token_idx = blockIdx.x;
+  int head_idx = blockIdx.y;
+  int dim_idx = threadIdx.x;
 
-  if (row < seq_len && col < seq_len) {
-    int idx = row * seq_len + col;
-    if (row < col) {
-      scores[idx] = -1e9f; // mask future tokens
-    } else {
-      scores[idx] *= scale;
+  // [ Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h ]
+  int q_idx = token_idx * (3 * hidden_size) + 0 * hidden_size +
+              head_idx * head_dim + dim_idx;
+  float q_val = qkv[q_idx];
+  float scale = 1.0f / sqrtf((float)head_dim);
+
+  /**
+   * Log-sum-exp trick is applied for numerical stability, and online softmax
+   * is used to avoid storing the entire softmax matrix in memory.
+   *
+   * Let's iterate over past tokens t <= token_idx (Causal Mask)
+   */
+  float max_val = -1e9f; // maximum attention score
+  float exp_sum = 0.0f;  // sum of expf(score_t - max_val)
+  float out_val = 0.0f;  // sum of expf(score_t - max_val) * v_t
+
+  for (int t = 0; t <= token_idx; ++t) {
+    int k_idx =
+        t * (3 * hidden_size) + 1 * hidden_size + head_idx * head_dim + dim_idx;
+    float k_val = qkv[k_idx];
+    float product = q_val * k_val;
+
+    /**
+     * Conduct warp-level reduction to obtain the attention score.
+     * Calculate the sum of 'product' across the block (head_dim).
+     */
+    extern __shared__ float reduction_buffer[];
+
+    unsigned int mask = 0xffffffff;
+    float val = product;
+    for (int offset = 16; offset > 0; offset /= 2) {
+      val += __shfl_down_sync(mask, val, offset);
     }
+
+    int warp_idx = threadIdx.x / 32;
+    int lane_idx = threadIdx.x % 32;
+    if (lane_idx == 0) { // thread 0 of each warp
+      reduction_buffer[warp_idx] = val;
+    }
+    __syncthreads();
+
+    if (threadIdx.x == 0) { // aggregate warp results
+      int num_warps = 1 + (head_dim - 1) / 32;
+      for (int i = 1; i < num_warps; ++i) {
+        reduction_buffer[0] += reduction_buffer[i];
+      }
+      reduction_buffer[0] *= scale;
+    }
+    __syncthreads();
+
+    float score = reduction_buffer[0]; // all threads have the total score
+
+    /**
+     * Update max_val, exp_sum, and out_val for online softmax.
+     * An update for exp_sum is also necessary to apply the new max_val.
+     */
+    float max_val_prev = max_val;
+    max_val = fmaxf(max_val, score);
+    float correction = expf(max_val_prev - max_val);
+    float exp_score = expf(score - max_val);
+    exp_sum = exp_sum * correction + exp_score;
+
+    int v_idx =
+        t * (3 * hidden_size) + 2 * hidden_size + head_idx * head_dim + dim_idx;
+    float v_val = qkv[v_idx];
+    out_val = out_val * correction + exp_score * v_val;
   }
+
+  out_val /= exp_sum; // normalize
+
+  /**
+   * Save the attention output to global memory.
+   * The output layout is [seq_len, hidden_size] (heads concatenated).
+   */
+  int out_idx = token_idx * hidden_size + head_idx * head_dim + dim_idx;
+  output[out_idx] = out_val;
 }
 
 /**
@@ -105,60 +140,26 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
   operations::layer_norm(x_norm, weights[prefix + "ln_1.weight"],
                          weights[prefix + "ln_1.bias"]);
 
-  Tensor qkv({seq_len, 3 * hidden_size});
-  operations::matmul(qkv, x_norm, weights[prefix + "attn.c_attn.weight"]);
-  operations::add_bias(qkv, weights[prefix + "attn.c_attn.bias"]);
-
   /**
    * The tensor `qkv` with dimension (seq_len, 3 * hidden_size) is a
    * concatenation of Q, K, and V matrices. Each Q, K, and V matrix is also a
    * concatenation of the h heads.
    *
    * [ Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h ]
+   * where hidden_size = num_heads * head_dim
    */
-  Tensor q_head({seq_len, head_dim});
-  Tensor k_head({seq_len, head_dim});
-  Tensor v_head({seq_len, head_dim});
-  Tensor attention_head_scores({seq_len, seq_len});
-  Tensor attention_head_values({seq_len, head_dim});
+  Tensor qkv({seq_len, 3 * hidden_size});
+  operations::matmul(qkv, x_norm, weights[prefix + "attn.c_attn.weight"]);
+  operations::add_bias(qkv, weights[prefix + "attn.c_attn.bias"]);
 
-  Tensor attention_value({seq_len, hidden_size}); // heads concatenated
+  Tensor attention_value({seq_len, hidden_size});
 
-  dim3 block_dims(16, 16);
-  dim3 head_grid_dims(1 + (seq_len - 1) / 16, 1 + (head_dim - 1) / 16);
-  dim3 score_grid_dims(1 + (seq_len - 1) / 16, 1 + (seq_len - 1) / 16);
-
-  float scale = 1.0f / std::sqrt(static_cast<float>(head_dim));
-
-  for (int h = 0; h < num_heads; ++h) {
-    // 1. Extract Q, K, V heads
-    extract_head_kernel<<<head_grid_dims, block_dims>>>(
-        q_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 0);
-    extract_head_kernel<<<head_grid_dims, block_dims>>>(
-        k_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 1);
-    extract_head_kernel<<<head_grid_dims, block_dims>>>(
-        v_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 2);
-
-    // 2. Compute attention scores
-    operations::transpose(k_head);
-    operations::matmul(attention_head_scores, q_head,
-                       k_head); // Score = Q * K^T
-    operations::transpose(k_head);
-
-    causal_mask_and_scale_kernel<<<score_grid_dims, block_dims>>>(
-        attention_head_scores.d_data, seq_len, scale);
-
-    // 3. Compute attention coefficients
-    operations::softmax(attention_head_scores);
-
-    // 4. Compute attention value
-    operations::matmul(attention_head_values, attention_head_scores, v_head);
-
-    // 5. Insert back into main buffer
-    insert_head_kernel<<<head_grid_dims, block_dims>>>(
-        attention_value.d_data, attention_head_values.d_data, seq_len,
-        hidden_size, head_dim, h);
-  }
+  dim3 block_dims(head_dim);
+  dim3 grid_dims(seq_len, num_heads);
+  int num_warps = 1 + (head_dim - 1) / 32;
+  multi_head_attention_kernel<<<grid_dims, block_dims,
+                                num_warps * sizeof(float)>>>(
+      attention_value.d_data, qkv.d_data, seq_len, hidden_size, head_dim);
 
   Tensor attention_output({seq_len, hidden_size});
   operations::matmul(attention_output, attention_value,
