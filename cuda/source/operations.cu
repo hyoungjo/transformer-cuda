@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <cuda_runtime.h>
 
+#define TILE_SIZE 16
+
 namespace operations {
 
 /**
@@ -68,15 +70,64 @@ __global__ void transpose_kernel(float *out, const float *in, int rows,
 __global__ void matrix_multiplication_kernel(float *out, const float *A,
                                              const float *B, int M, int N,
                                              int K) {
-  int m = blockIdx.y * blockDim.y + threadIdx.y;
-  int n = blockIdx.x * blockDim.x + threadIdx.x;
+  __shared__ float As[TILE_SIZE][TILE_SIZE];
+  __shared__ float Bs[TILE_SIZE][TILE_SIZE];
 
-  if (m < M && n < N) {
-    float sum = 0.0f;
-    for (int k = 0; k < K; ++k) {
-      sum += A[m * K + k] * B[k * N + n];
+  int bx = blockIdx.x;
+  int by = blockIdx.y;
+
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+
+  // Global row and column indices for this thread
+  int row = by * TILE_SIZE + ty;
+  int col = bx * TILE_SIZE + tx;
+
+  /**
+   * The loop iterates pairs of tiles from A and B to compute the result of a
+   * specific tile in `out`.
+   *
+   * `val` holds the dot product result to be saved to `out[row][col]`.
+   * `num_tiles` is the number of tile pairs to iterate over.
+   */
+  float val = 0.0f;
+  int num_tiles = 1 + (K - 1) / TILE_SIZE;
+
+  for (int t = 0; t < num_tiles; ++t) {
+    /**
+     * A collaborative load of tiles from A and B into the shared memory `As`
+     * and `Bs`, respectively.
+     *
+     * The current thread will load `A[row][t * TILE_SIZE + tx]` to `As` and
+     * `B[t * TILE_SIZE + ty][col]` to `Bs`.
+     */
+    int a_col = t * TILE_SIZE + tx;
+    if (row < M && a_col < K) {
+      As[ty][tx] = A[row * K + a_col];
+    } else {
+      As[ty][tx] = 0.0f;
     }
-    out[m * N + n] = sum;
+
+    int b_row = t * TILE_SIZE + ty;
+    if (b_row < K && col < N) {
+      Bs[ty][tx] = B[b_row * N + col];
+    } else {
+      Bs[ty][tx] = 0.0f;
+    }
+    __syncthreads();
+
+    /**
+     * Compute the dot product of the loaded tiles. The position used from `As`
+     * and `Bs` is different from what each thread loads.
+     */
+    for (int k = 0; k < TILE_SIZE; ++k) {
+      val += As[ty][k] * Bs[k][tx];
+    }
+    __syncthreads();
+  }
+
+  if (row < M && col < N) {
+    out[row * N + col] = val;
   }
 }
 
@@ -309,8 +360,8 @@ void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
   int64_t K = A.shape[1];
   int64_t N = B.shape[1];
 
-  dim3 block_dims(16, 16);
-  dim3 grid_dims(1 + (N - 1) / 16, 1 + (M - 1) / 16);
+  dim3 block_dims(TILE_SIZE, TILE_SIZE);
+  dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
   matrix_multiplication_kernel<<<grid_dims, block_dims>>>(out.d_data, A.d_data,
                                                           B.d_data, M, N, K);
 }
