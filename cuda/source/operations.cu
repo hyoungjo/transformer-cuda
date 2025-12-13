@@ -1,5 +1,6 @@
 #include "operations.hpp"
 #include "tensor.hpp"
+#include <cfloat>
 #include <cmath>
 #include <cstdint>
 #include <cuda_runtime.h>
@@ -11,6 +12,20 @@ namespace operations {
  * =================== Helper CUDA Kernels ====================
  * ============================================================
  */
+
+__inline__ __device__ float warp_reduce_max(float val) {
+  for (int offset = 16; offset > 0; offset /= 2) {
+    val = fmaxf(val, __shfl_down_sync(0xffffffff, val, offset));
+  }
+  return val;
+}
+
+__inline__ __device__ float warp_reduce_sum(float val) {
+  for (int offset = 16; offset > 0; offset /= 2) {
+    val += __shfl_down_sync(0xffffffff, val, offset);
+  }
+  return val;
+}
 
 /**
  * Look up and configure embeddings.
@@ -107,61 +122,147 @@ __global__ void gelu_kernel(float *x, int64_t n) {
 /**
  * Apply layer normalization over each sequence element.
  * Each block processes a row (sequence element).
- * This is a naive version where only thread 0 does the math.
  */
 __global__ void layer_norm_kernel(float *x, const float *weight,
                                   const float *bias, int hidden_size,
                                   float eps) {
-  int t = blockIdx.x;
+  extern __shared__ float warp_results[];
 
-  if (threadIdx.x == 0) {
-    float *row = x + t * hidden_size;
+  int row_idx = blockIdx.x;
+  float *row = x + row_idx * hidden_size;
 
-    float sum = 0.0f;
-    for (int i = 0; i < hidden_size; ++i)
-      sum += row[i];
-    float mean = sum / hidden_size;
+  int num_warps = blockDim.x / 32;
+  int tid = threadIdx.x;
+  int warp_idx = threadIdx.x / 32;
+  int lane_idx = threadIdx.x % 32;
 
-    float sum_of_squares = 0.0f;
-    for (int i = 0; i < hidden_size; ++i) {
-      float diff = row[i] - mean;
-      sum_of_squares += diff * diff;
+  /**
+   * Find the sum (then mean) of the row with strided loop and warp reduce.
+   *
+   * The first thread of each warp stores the result in the shared memory, and
+   * later aggregated by thread 0.
+   */
+  float local_sum = 0.0f;
+  for (int i = tid; i < hidden_size; i += blockDim.x) {
+    local_sum += row[i];
+  }
+  local_sum = warp_reduce_sum(local_sum);
+  if (lane_idx == 0) {
+    warp_results[warp_idx] = local_sum;
+  }
+  __syncthreads();
+
+  if (tid == 0) {
+    for (int w = 1; w < num_warps; ++w) {
+      warp_results[0] += warp_results[w];
     }
-    float variance = sum_of_squares / hidden_size;
-    float std = sqrtf(variance + eps);
+  }
+  __syncthreads();
 
-    for (int i = 0; i < hidden_size; ++i) {
-      row[i] = ((row[i] - mean) / std) * weight[i] + bias[i];
+  float mean = warp_results[0] / hidden_size;
+
+  /**
+   * Compute the sum of squares (then variance) of the row with strided loop and
+   * warp reduce.
+   */
+  float local_sum_of_squares = 0.0f;
+  for (int i = tid; i < hidden_size; i += blockDim.x) {
+    local_sum_of_squares += (row[i] - mean) * (row[i] - mean);
+  }
+  local_sum_of_squares = warp_reduce_sum(local_sum_of_squares);
+  if (lane_idx == 0) {
+    warp_results[warp_idx] = local_sum_of_squares;
+  }
+  __syncthreads();
+
+  if (tid == 0) {
+    for (int w = 1; w < num_warps; ++w) {
+      warp_results[0] += warp_results[w];
     }
+  }
+  __syncthreads();
+
+  float variance = warp_results[0] / hidden_size;
+  float inv_std = rsqrtf(variance + eps);
+
+  /**
+   * Normalize and scale with weights and biases.
+   */
+  for (int i = tid; i < hidden_size; i += blockDim.x) {
+    row[i] = ((row[i] - mean) * inv_std) * weight[i] + bias[i];
   }
 }
 
 /**
  * Apply softmax over the last dimension.
  * Each block processes a flattened row.
- * This is a naive version where only thread 0 does the math.
  */
 __global__ void softmax_kernel(float *x, int stride, int rows) {
-  int r = blockIdx.x;
-  if (r < rows) {
-    float *row = x + r * stride;
+  extern __shared__ float warp_results[];
 
-    if (threadIdx.x == 0) { // only thread 0 gets involved
-      float max_val = row[0];
-      for (int i = 1; i < stride; ++i) {
-        max_val = fmaxf(max_val, row[i]);
-      }
+  int row_idx = blockIdx.x;
+  if (row_idx >= rows)
+    return;
 
-      float sum = 0.0f;
-      for (int i = 0; i < stride; ++i) {
-        row[i] = expf(row[i] - max_val);
-        sum += row[i];
-      }
+  float *row = x + row_idx * stride;
 
-      for (int i = 0; i < stride; ++i) {
-        row[i] /= sum;
-      }
+  int num_warps = blockDim.x / 32;
+  int tid = threadIdx.x;
+  int warp_idx = threadIdx.x / 32;
+  int lane_idx = threadIdx.x % 32;
+
+  /**
+   * Find the maximum value in the row with strided loop and warp reduce.
+   *
+   * The first thread of each warp stores the result in the shared memory, and
+   * later aggregated by thread 0.
+   */
+  float local_max = -FLT_MAX;
+  for (int i = tid; i < stride; i += blockDim.x) {
+    local_max = fmaxf(local_max, row[i]);
+  }
+  local_max = warp_reduce_max(local_max);
+  if (lane_idx == 0) {
+    warp_results[warp_idx] = local_max;
+  }
+  __syncthreads();
+
+  if (tid == 0) {
+    for (int w = 1; w < num_warps; ++w) {
+      warp_results[0] = fmaxf(warp_results[0], warp_results[w]);
     }
+  }
+  __syncthreads();
+
+  float row_max = warp_results[0];
+
+  /**
+   * Compute the exponential sum of the row with strided loop and warp reduce.
+   */
+  float local_sum = 0.0f;
+  for (int i = tid; i < stride; i += blockDim.x) {
+    local_sum += expf(row[i] - row_max);
+  }
+  local_sum = warp_reduce_sum(local_sum);
+  if (lane_idx == 0) {
+    warp_results[warp_idx] = local_sum;
+  }
+  __syncthreads();
+
+  if (tid == 0) {
+    for (int w = 1; w < num_warps; ++w) {
+      warp_results[0] += warp_results[w];
+    }
+  }
+  __syncthreads();
+
+  float row_sum = warp_results[0];
+
+  /**
+   * Normalize each element with strided loop
+   */
+  for (int i = tid; i < stride; i += blockDim.x) {
+    row[i] = expf(row[i] - row_max) / row_sum;
   }
 }
 
@@ -249,10 +350,11 @@ void layer_norm(Tensor &x, const Tensor &weight, const Tensor &bias,
   int seq_len = x.shape[0];
   int hidden_size = x.shape[1];
 
-  dim3 block_dims(1);
+  dim3 block_dims(256);
   dim3 grid_dims(seq_len);
-  layer_norm_kernel<<<grid_dims, block_dims>>>(x.d_data, weight.d_data,
-                                               bias.d_data, hidden_size, eps);
+  int num_warps = block_dims.x / 32; // should be a multiple of 32
+  layer_norm_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
+      x.d_data, weight.d_data, bias.d_data, hidden_size, eps);
 }
 
 void softmax(Tensor &x) {
@@ -260,9 +362,11 @@ void softmax(Tensor &x) {
   int64_t last_dim = x.shape.back();
   int64_t flattened_rows = x.numel() / last_dim;
 
-  dim3 block_dims(1);
+  dim3 block_dims(256);
   dim3 grid_dims(flattened_rows);
-  softmax_kernel<<<grid_dims, block_dims>>>(x.d_data, last_dim, flattened_rows);
+  int num_warps = block_dims.x / 32; // should be a multiple of 32
+  softmax_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
+      x.d_data, last_dim, flattened_rows);
 }
 
 } // namespace operations
