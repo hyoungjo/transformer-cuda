@@ -5,7 +5,9 @@
 #include <numeric>
 
 /**
- * Constructors, Assignment Operators, and Destructor
+ * ============================================================
+ * ==== Constructors, Assignment Operators, and Destructor ====
+ * ============================================================
  */
 
 Tensor::Tensor() {}
@@ -13,7 +15,6 @@ Tensor::Tensor() {}
 Tensor::Tensor(const std::vector<int64_t> &shape, std::string device,
                bool zeros) {
   // std::cout << "[CUDA][TRACE] Tensor Constructor" << std::endl;
-
   this->shape = shape;
   if (device == "gpu") {
     cudaMalloc(&d_data, numel() * sizeof(float));
@@ -30,7 +31,6 @@ Tensor::Tensor(const std::vector<int64_t> &shape, std::string device,
 
 Tensor::Tensor(const Tensor &other) {
   // std::cout << "[CUDA][TRACE] Tensor Copy Constructor" << std::endl;
-
   shape = other.shape;
   h_data = other.h_data;
   if (other.d_data) {
@@ -42,7 +42,6 @@ Tensor::Tensor(const Tensor &other) {
 
 Tensor &Tensor::operator=(const Tensor &other) {
   // std::cout << "[CUDA][TRACE] Tensor Copy Assignment" << std::endl;
-
   if (this != &other) {
     shape = other.shape;
     h_data = other.h_data;
@@ -61,13 +60,11 @@ Tensor::Tensor(Tensor &&other) noexcept
     : shape(std::move(other.shape)), h_data(std::move(other.h_data)),
       d_data(other.d_data) {
   // std::cout << "[CUDA][TRACE] Tensor Move Constructor" << std::endl;
-
   other.d_data = nullptr;
 }
 
 Tensor &Tensor::operator=(Tensor &&other) noexcept {
   // std::cout << "[CUDA][TRACE] Tensor Move Assignment" << std::endl;
-
   if (this != &other) {
     shape = std::move(other.shape);
     h_data = std::move(other.h_data);
@@ -81,19 +78,19 @@ Tensor &Tensor::operator=(Tensor &&other) noexcept {
 
 Tensor::~Tensor() {
   // std::cout << "[CUDA][TRACE] Tensor Destructor" << std::endl;
-
   if (d_data) {
     cudaFree(d_data);
   }
 }
 
 /**
- * Member functions
+ * ============================================================
+ * ===================== Member Functions =====================
+ * ============================================================
  */
 
 int64_t Tensor::numel() const {
   // std::cout << "[CUDA][TRACE] Tensor numel()" << std::endl;
-
   if (shape.empty())
     return 0;
   return std::accumulate(shape.begin(), shape.end(), 1LL,
@@ -102,7 +99,6 @@ int64_t Tensor::numel() const {
 
 void Tensor::to(std::string device) {
   // std::cout << "[CUDA][TRACE] Tensor to()" << std::endl;
-
   if (device == "gpu") {
     if (d_data) {
       std::cerr << "Tensor is already on GPU" << std::endl;
@@ -127,7 +123,9 @@ void Tensor::to(std::string device) {
 }
 
 /**
- * Host-side helper functions
+ * ============================================================
+ * ================ Host-side Helper Functions ================
+ * ============================================================
  */
 
 std::vector<float>::iterator Tensor::begin() { return h_data.begin(); }
