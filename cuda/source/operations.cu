@@ -54,10 +54,24 @@ __global__ void embed_kernel(float *x, const float *wte, const float *wpe,
  * Transpose an input matrix and save to an output matrix.
  * Each thread handles an element.
  *
+ * In the naive version, the kernel directly reads and writes to the global
+ * memory without considering the memory access pattern.
+ *
  * The kernel is designed to use a shared memory tile, to allow coalesced memory
  * access to the input and output matrices. To avoid shared memory bank
  * conflict, padding of 1 is added to the shared memory tile.
  */
+
+__global__ void naive_transpose_kernel(float *out, const float *in, int M,
+                                       int N) {
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if (x < N && y < M) {
+    out[x * M + y] = in[y * N + x];
+  }
+}
+
 __global__ void transpose_kernel(float *out, const float *in, int M, int N) {
   __shared__ float tile[TILE_SIZE][TILE_SIZE + 1];
 
@@ -88,9 +102,28 @@ __global__ void transpose_kernel(float *out, const float *in, int M, int N) {
  * Perform a general matrix multiplication of matrix A and B and save to out.
  * Each block handles a tile of the output matrix.
  *
+ * In the naive version, the kernel is implemented without shared memory tiles,
+ * which results in a high number of global memory accesses.
+ *
  * The kernel implements a tiled matrix multiplication algorithm, using shared
  * memory to improve memory access patterns and reduce global memory access.
  */
+
+__global__ void naive_matrix_multiplication_kernel(float *out, const float *A,
+                                                   const float *B, int M, int N,
+                                                   int K) {
+  int row = blockIdx.y * blockDim.y + threadIdx.y;
+  int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+  if (row < M && col < N) {
+    float sum = 0.0f;
+    for (int k = 0; k < K; ++k) {
+      sum += A[row * K + k] * B[k * N + col];
+    }
+    out[row * N + col] = sum;
+  }
+}
+
 __global__ void matrix_multiplication_kernel(float *out, const float *A,
                                              const float *B, int M, int N,
                                              int K) {
@@ -199,6 +232,10 @@ __global__ void gelu_kernel(float *x, int64_t n) {
  * Apply layer normalization to each sequence element, with weights and biases.
  * Each block processes a row (sequence element).
  *
+ * In the naive version, which is implemented without any shared memory use,
+ * each block is launched with a single thread, which handles the entire row
+ * sequentially.
+ *
  * The commented code is a typical reduction algorithm from the lecture slides,
  * implemented with sequential addressing (memory coalesced) and loop unrolling
  * (warp reduce).
@@ -209,6 +246,30 @@ __global__ void gelu_kernel(float *x, int64_t n) {
  *  2. Each warp is reduced to a single value and stored in shared memory.
  *  3. The thread 0 of each block aggregates the reduction result of each warp.
  */
+
+__global__ void naive_layer_norm_kernel(float *x, const float *weight,
+                                        const float *bias, int hidden_size,
+                                        float eps) {
+  int row = blockIdx.x;
+  float *data = x + row * hidden_size;
+
+  float sum = 0.0f;
+  for (int i = 0; i < hidden_size; ++i)
+    sum += data[i];
+  float mean = sum / hidden_size;
+
+  float sum_of_squares = 0.0f;
+  for (int i = 0; i < hidden_size; ++i) {
+    float diff = data[i] - mean;
+    sum_of_squares += diff * diff;
+  }
+  float variance = sum_of_squares / hidden_size;
+  float inv_std = rsqrtf(variance + eps);
+
+  for (int i = 0; i < hidden_size; ++i) {
+    data[i] = ((data[i] - mean) * inv_std) * weight[i] + bias[i];
+  }
+}
 
 __global__ void layer_norm_kernel(float *x, const float *weight,
                                   const float *bias, int hidden_size,
@@ -310,6 +371,10 @@ __global__ void layer_norm_kernel(float *x, const float *weight,
  * Each block processes a flattened row. This is called in attention layers and
  * in the decoding process (calculate probabilities).
  *
+ * In the naive version, which is implemented without any shared memory use,
+ * each block is launched with a single thread, which handles the entire row
+ * sequentially.
+ *
  * The commented code is a typical reduction algorithm from the lecture slides,
  * implemented with sequential addressing (memory coalesced) and loop unrolling
  * (warp reduce).
@@ -320,6 +385,26 @@ __global__ void layer_norm_kernel(float *x, const float *weight,
  *  2. Each warp is reduced to a single value and stored in shared memory.
  *  3. The thread 0 of each block aggregates the reduction result of each warp.
  */
+
+__global__ void naive_softmax_kernel(float *x, int stride, int rows) {
+  int row = blockIdx.x;
+  float *data = x + row * stride;
+
+  float max = data[0];
+  for (int i = 1; i < stride; ++i) {
+    max = fmaxf(max, data[i]);
+  }
+
+  float exp_sum = 0.0f;
+  for (int i = 0; i < stride; ++i) {
+    data[i] = expf(data[i] - max);
+    exp_sum += data[i];
+  }
+
+  for (int i = 0; i < stride; ++i) {
+    data[i] /= exp_sum;
+  }
+}
 
 __global__ void softmax_kernel(float *x, int dim_size, int rows) {
   extern __shared__ float reduction[];
@@ -434,6 +519,8 @@ void transpose(Tensor &out, const Tensor &x) {
 
   dim3 block_dims(TILE_SIZE, TILE_SIZE);
   dim3 grid_dims(1 + (cols - 1) / TILE_SIZE, 1 + (rows - 1) / TILE_SIZE);
+  // naive_transpose_kernel<<<grid_dims, block_dims>>>(out.d_data, x.d_data,
+  // rows, cols);
   transpose_kernel<<<grid_dims, block_dims>>>(out.d_data, x.d_data, rows, cols);
 }
 
@@ -445,6 +532,8 @@ void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
 
   dim3 block_dims(TILE_SIZE, TILE_SIZE);
   dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
+  // naive_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
+  //     out.d_data, A.d_data, B.d_data, M, N, K);
   matrix_multiplication_kernel<<<grid_dims, block_dims>>>(out.d_data, A.d_data,
                                                           B.d_data, M, N, K);
 }
@@ -501,6 +590,11 @@ void layer_norm(Tensor &x, const Tensor &weight, const Tensor &bias,
   int seq_len = x.shape[0];
   int hidden_size = x.shape[1];
 
+  // dim3 block_dims(1);
+  // dim3 grid_dims(seq_len);
+  // naive_layer_norm_kernel<<<grid_dims, block_dims>>>(
+  //     x.d_data, weight.d_data, bias.d_data, hidden_size, eps);
+
   dim3 block_dims(1024);
   dim3 grid_dims(seq_len);
   int num_warps = block_dims.x / 32;
@@ -512,6 +606,11 @@ void softmax(Tensor &x) {
   // std::cout << "[CUDA][TRACE] Operations softmax()" << std::endl;
   int64_t dim_size = x.shape.back();       // last dimension
   int64_t num_rows = x.numel() / dim_size; // flattened rows
+
+  // dim3 block_dims(1);
+  // dim3 grid_dims(num_rows);
+  // naive_softmax_kernel<<<grid_dims, block_dims>>>(x.d_data, dim_size,
+  // num_rows);
 
   dim3 block_dims(1024);
   dim3 grid_dims(num_rows);
