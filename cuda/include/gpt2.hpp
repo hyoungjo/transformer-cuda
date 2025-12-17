@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <map>
 #include <string>
-#include <vector>
 
 class GPT2 {
 private:
@@ -23,5 +22,5 @@ private:
 public:
   GPT2(const std::string &path);
 
-  Tensor forward(const std::vector<int> &input_ids);
+  Tensor forward(int *input_ids, int seq_len);
 };

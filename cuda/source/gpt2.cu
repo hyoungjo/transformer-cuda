@@ -128,7 +128,9 @@ GPT2::GPT2(const std::string &path) {
   weights = utils::load_data(path, "gpu");
 
   // transpose "lm_head.weight" for matmul
-  operations::transpose(weights["lm_head.weight"]);
+  Tensor out({hidden_size, vocab_size});
+  operations::transpose(out, weights["lm_head.weight"]);
+  weights["lm_head.weight"] = std::move(out);
 }
 
 void GPT2::attention_block(Tensor &x, int layer_idx) {
@@ -191,12 +193,12 @@ void GPT2::mlp_block(Tensor &x, int layer_idx) {
   operations::add(x, x2);
 }
 
-Tensor GPT2::forward(const std::vector<int> &input_ids) {
+Tensor GPT2::forward(int *input_ids, int seq_len) {
   // std::cout << "[CUDA][TRACE] Beginning forward pass" << std::endl;
-  int seq_len = static_cast<int>(input_ids.size());
   Tensor x({seq_len, hidden_size});
-  operations::embedding(x, weights["transformer.wte.weight"],
-                        weights["transformer.wpe.weight"], input_ids);
+  operations::embed(x, weights["transformer.wte.weight"],
+                    weights["transformer.wpe.weight"], input_ids, seq_len,
+                    hidden_size);
 
   for (int i = 0; i < num_layers; ++i) {
     attention_block(x, i);

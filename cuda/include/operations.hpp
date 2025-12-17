@@ -13,10 +13,10 @@
 
 namespace operations {
 
-void embedding(Tensor &x, const Tensor &wte, const Tensor &wpe,
-               const std::vector<int> &input_ids);
+void embed(Tensor &x, const Tensor &wte, const Tensor &wpe,
+           const int *input_ids, int seq_len, int hidden_size);
 
-void transpose(Tensor &x);
+void transpose(Tensor &out, const Tensor &x);
 void matmul(Tensor &out, const Tensor &A, const Tensor &B);
 
 void add(Tensor &x, const Tensor &y);

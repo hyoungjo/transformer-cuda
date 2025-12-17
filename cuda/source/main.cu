@@ -27,10 +27,17 @@ int main() {
       input_ids.push_back(static_cast<int>(id));
     }
 
-    std::cout << "[CUDA][TRACE] Input size: " << input_ids.size() << " tokens"
+    int seq_len = input_ids.size();
+    std::cout << "[CUDA][TRACE] Input size: " << seq_len << " tokens"
               << std::endl;
 
-    Tensor logits = model.forward(input_ids);
+    int *d_input_ids;
+    cudaMalloc(&d_input_ids, seq_len * sizeof(int));
+    cudaMemcpy(d_input_ids, input_ids.data(), seq_len * sizeof(int),
+               cudaMemcpyHostToDevice);
+    Tensor logits = model.forward(d_input_ids, seq_len);
+    cudaFree(d_input_ids);
+
     Tensor probs = std::move(logits);
     operations::softmax(probs);
     probs.to("cpu");

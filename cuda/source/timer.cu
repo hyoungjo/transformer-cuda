@@ -30,9 +30,15 @@ int main() {
       input_ids.push_back(static_cast<int>(id));
     }
 
+    int seq_len = input_ids.size();
+    int *d_input_ids;
+    cudaMalloc(&d_input_ids, seq_len * sizeof(int));
+    cudaMemcpy(d_input_ids, input_ids.data(), seq_len * sizeof(int),
+               cudaMemcpyHostToDevice);
+
     // 'volatile' prevents the compiler from deleting the lines
     for (int w = 0; w < WARMUPS; ++w) {
-      Tensor logits = model.forward(input_ids);
+      Tensor logits = model.forward(d_input_ids, seq_len);
       asm volatile("" : : "g"(logits.d_data) : "memory");
     }
 
@@ -41,11 +47,12 @@ int main() {
 
     for (int b = 0; b < ITERATIONS; ++b) {
       auto start = high_resolution_clock::now();
-      Tensor logits = model.forward(input_ids);
+      Tensor logits = model.forward(d_input_ids, seq_len);
       auto end = high_resolution_clock::now();
       auto execution_time = duration_cast<microseconds>(end - start).count();
       durations.push_back(execution_time);
     }
+    cudaFree(d_input_ids);
 
     size_t n = durations.size();
     std::sort(durations.begin(), durations.end());
