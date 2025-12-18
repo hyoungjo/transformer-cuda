@@ -73,28 +73,104 @@ __global__ void causal_mask_and_scale_kernel(float *scores, int seq_len,
 }
 
 /**
- * Calculates the attention output given the query, key, and value matrices.
- *
- * This is a fused multi-head attention kernel, that calculates the attention
- * score, applies causal masking and scaling, performs online softmax and value
- * aggregation.
- *
- * grid_dims: (seq_len, num_heads)
- * block_dims: (head_dim)
- *
+ * Calculates the attention output from query, key, and value matrices.
  * A block calculates the attention output for a token, head pair.
+ *
+ * The kernel uses a fused attention mechanism, where it integrates several
+ * previously discrete operations into a single execution unit. It combines
+ * matrix multiplication for calculating the attention scores, causal masking
+ * and scaling, softmax via online log-sum-exp trick, and value aggregation.
+ *
+ * By fusing these operations, the implementation removes intermediate global
+ * memory reads and writes between different kernel launches, resulting in
+ * significant performance improvements over a naive implementation.
+ *
+ * A naive version is written to simply merge separate kernel operations, and
+ * therefore each block runs with a single thread calculating the attention
+ * output for a token, head pair.
  */
-__global__ void multi_head_attention_kernel(float *output, const float *qkv,
-                                            int seq_len, int hidden_size,
-                                            int head_dim) {
+
+__global__ void naive_fused_attention_kernel(float *output, const float *qkv,
+                                             int hidden_size, int head_dim) {
   int token_idx = blockIdx.x;
   int head_idx = blockIdx.y;
-  int dim_idx = threadIdx.x;
 
-  // [ Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h ]
-  int q_idx = token_idx * (3 * hidden_size) + 0 * hidden_size +
-              head_idx * head_dim + dim_idx;
+  auto calculate_qkv_offset = [&](int token_idx, int qkv_idx, int head_idx,
+                                  int head_dim_idx) {
+    return token_idx * (3 * hidden_size) + qkv_idx * hidden_size +
+           head_idx * head_dim + head_dim_idx;
+  };
+
+  float scale = 1.0f / sqrtf((float)head_dim);
+
+  float max = -1e9f;
+  float exp_sum = 0.0f;
+  extern __shared__ float out_val[];
+
+  for (int t = 0; t <= token_idx; ++t) {
+    /**
+     * Calculate the attention score for a query, key pair by iterating across
+     * the block (head_dim).
+     */
+    float score = 0.0f;
+    for (int i = 0; i < head_dim; ++i) {
+      int q_idx = calculate_qkv_offset(token_idx, 0, head_idx, i);
+      int k_idx = calculate_qkv_offset(t, 1, head_idx, i);
+      float q_val = qkv[q_idx];
+      float k_val = qkv[k_idx];
+      score += q_val * k_val;
+    }
+    score *= scale;
+
+    float max_prev = max;
+    max = fmaxf(max, score);
+    float correction = expf(max_prev - max);
+    float exp_score = expf(score - max);
+    exp_sum = exp_sum * correction + exp_score;
+
+    for (int i = 0; i < head_dim; ++i) {
+      int v_idx = calculate_qkv_offset(t, 2, head_idx, i);
+      float v_val = qkv[v_idx];
+      out_val[i] = out_val[i] * correction + exp_score * v_val;
+    }
+  }
+
+  for (int i = 0; i < head_dim; ++i) {
+    int out_idx = token_idx * hidden_size + head_idx * head_dim + i;
+    output[out_idx] = out_val[i] / exp_sum;
+  }
+}
+
+__global__ void fused_attention_kernel(float *output, const float *qkv,
+                                       int hidden_size) {
+  extern __shared__ float reduction[];
+
+  int token_idx = blockIdx.x;
+  int head_idx = blockIdx.y;
+  int head_dim = blockDim.x;
+  int head_dim_idx = threadIdx.x;
+
+  int num_warps = 1 + (head_dim - 1) / 32;
+  int warp_idx = threadIdx.x / 32;
+  int lane_idx = threadIdx.x % 32;
+
+  /**
+   * Calculate the offset in the qkv tensor for a given token, query/key/value
+   * type, head, and dimension.
+   *
+   * [ Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h ]
+   *
+   * `int qkv_idx`: 0 for query, 1 for key, 2 for value
+   */
+  auto calculate_qkv_offset = [&](int token_idx, int qkv_idx, int head_idx,
+                                  int head_dim_idx) {
+    return token_idx * (3 * hidden_size) + qkv_idx * hidden_size +
+           head_idx * head_dim + head_dim_idx;
+  };
+
+  int q_idx = calculate_qkv_offset(token_idx, 0, head_idx, head_dim_idx);
   float q_val = qkv[q_idx];
+
   float scale = 1.0f / sqrtf((float)head_dim);
 
   /**
@@ -103,70 +179,60 @@ __global__ void multi_head_attention_kernel(float *output, const float *qkv,
    *
    * Let's iterate over past tokens t <= token_idx (Causal Mask)
    */
-  float max_val = -1e9f; // maximum attention score
-  float exp_sum = 0.0f;  // sum of expf(score_t - max_val)
-  float out_val = 0.0f;  // sum of expf(score_t - max_val) * v_t
+  float max = -1e9f;    // maximum attention score
+  float exp_sum = 0.0f; // sum of expf(score - max)
+  float out_val = 0.0f; // sum of expf(score - max) * v_val
 
   for (int t = 0; t <= token_idx; ++t) {
-    int k_idx =
-        t * (3 * hidden_size) + 1 * hidden_size + head_idx * head_dim + dim_idx;
-    float k_val = qkv[k_idx];
-    float product = q_val * k_val;
-
     /**
-     * Conduct warp-level reduction to obtain the attention score.
-     * Calculate the sum of 'product' across the block (head_dim).
+     * Calculate the sum of 'product' across the block (head_dim). It conducts
+     * reduction to obtain the attention score for a query, key pair. The code
+     * follows the warp-level reduction pattern from layer normalization and
+     * softmax kernels of `operations.cu`.
      */
-    extern __shared__ float reduction_buffer[];
-
-    unsigned int mask = 0xffffffff;
-    float val = product;
-    for (int offset = 16; offset > 0; offset /= 2) {
-      val += __shfl_down_sync(mask, val, offset);
+    float t_score = 0.0f;
+    if (head_dim_idx < head_dim) {
+      int k_idx = calculate_qkv_offset(t, 1, head_idx, head_dim_idx);
+      float k_val = qkv[k_idx];
+      t_score = q_val * k_val;
     }
 
-    int warp_idx = threadIdx.x / 32;
-    int lane_idx = threadIdx.x % 32;
-    if (lane_idx == 0) { // thread 0 of each warp
-      reduction_buffer[warp_idx] = val;
-    }
+    float warp_score = t_score;
+    for (int offset = 16; offset > 0; offset /= 2)
+      warp_score += __shfl_down_sync(0xffffffff, warp_score, offset);
+    if (lane_idx == 0)
+      reduction[warp_idx] = warp_score;
     __syncthreads();
-
-    if (threadIdx.x == 0) { // aggregate warp results
-      int num_warps = 1 + (head_dim - 1) / 32;
-      for (int i = 1; i < num_warps; ++i) {
-        reduction_buffer[0] += reduction_buffer[i];
+    if (threadIdx.x == 0) {
+      for (int w = 1; w < num_warps; ++w) {
+        reduction[0] += reduction[w];
       }
-      reduction_buffer[0] *= scale;
     }
     __syncthreads();
 
-    float score = reduction_buffer[0]; // all threads have the total score
+    float score = reduction[0] * scale;
 
     /**
-     * Update max_val, exp_sum, and out_val for online softmax.
-     * An update for exp_sum is also necessary to apply the new max_val.
+     * Update max, exp_sum, and out_val for online softmax.
+     * An update for exp_sum is also necessary to apply the new max.
      */
-    float max_val_prev = max_val;
-    max_val = fmaxf(max_val, score);
-    float correction = expf(max_val_prev - max_val);
-    float exp_score = expf(score - max_val);
+    float max_prev = max;
+    max = fmaxf(max, score);
+    float correction = expf(max_prev - max);
+    float exp_score = expf(score - max);
     exp_sum = exp_sum * correction + exp_score;
 
-    int v_idx =
-        t * (3 * hidden_size) + 2 * hidden_size + head_idx * head_dim + dim_idx;
+    int v_idx = calculate_qkv_offset(t, 2, head_idx, head_dim_idx);
     float v_val = qkv[v_idx];
     out_val = out_val * correction + exp_score * v_val;
   }
-
-  out_val /= exp_sum; // normalize
 
   /**
    * Save the attention output to global memory.
    * The output layout is [seq_len, hidden_size] (heads concatenated).
    */
-  int out_idx = token_idx * hidden_size + head_idx * head_dim + dim_idx;
-  output[out_idx] = out_val;
+  int out_idx = token_idx * hidden_size + head_idx * head_dim + head_dim_idx;
+  output[out_idx] = out_val / exp_sum;
 }
 
 /**
@@ -218,62 +284,67 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
 
   Tensor attention_value({seq_len, hidden_size});
 
+  // /**
+  //  * A naive implementation of multi-head attention. It allocates Q, K, V for
+  //  * each head and computes attention scores, coefficients, and values for
+  //  * each head with kernels from `operations.cu`.
+  //  */
+  // Tensor q_head({seq_len, head_dim});
+  // Tensor k_head({seq_len, head_dim});
+  // Tensor k_head_transposed({head_dim, seq_len});
+  // Tensor v_head({seq_len, head_dim});
+  // Tensor attention_head_scores({seq_len, seq_len});
+  // Tensor attention_head_values({seq_len, head_dim});
+
+  // dim3 block_dims(16, 16);
+  // dim3 head_grid_dims(1 + (head_dim - 1) / 16, 1 + (seq_len - 1) / 16);
+  // dim3 score_grid_dims(1 + (seq_len - 1) / 16, 1 + (seq_len - 1) / 16);
+
+  // float scale = 1.0f / std::sqrt(static_cast<float>(head_dim));
+
+  // for (int h = 0; h < num_heads; ++h) {
+  //   /**
+  //    * Extract Q, K, V heads from joint matrix `qkv` and compute attention
+  //    * scores, coefficients, and values.
+  //    */
+  //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
+  //       q_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 0);
+  //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
+  //       k_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 1);
+  //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
+  //       v_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 2);
+
+  //   operations::transpose(k_head_transposed, k_head);
+  //   operations::matmul(attention_head_scores, q_head,
+  //                      k_head_transposed); // Score = Q * K^T
+  //   causal_mask_and_scale_kernel<<<score_grid_dims, block_dims>>>(
+  //       attention_head_scores.d_data, seq_len, scale);
+
+  //   operations::softmax(attention_head_scores);
+  //   operations::matmul(attention_head_values, attention_head_scores, v_head);
+
+  //   /**
+  //    * Save the results to the attention_value tensor.
+  //    */
+  //   insert_head_kernel<<<head_grid_dims, block_dims>>>(
+  //       attention_value.d_data, attention_head_values.d_data, seq_len,
+  //       hidden_size, head_dim, h);
+  // }
+
   /**
-   * A naive implementation of multi-head attention. It allocates Q, K, V for
-   * each head and computes attention scores, coefficients, and values for each
-   * head with kernels from `operations.cu`.
+   * Implementation of naive and optimized fused attention kernel.
    */
-  Tensor q_head({seq_len, head_dim});
-  Tensor k_head({seq_len, head_dim});
-  Tensor k_head_transposed({head_dim, seq_len});
-  Tensor v_head({seq_len, head_dim});
-  Tensor attention_head_scores({seq_len, seq_len});
-  Tensor attention_head_values({seq_len, head_dim});
 
-  dim3 block_dims(16, 16);
-  dim3 head_grid_dims(1 + (head_dim - 1) / 16, 1 + (seq_len - 1) / 16);
-  dim3 score_grid_dims(1 + (seq_len - 1) / 16, 1 + (seq_len - 1) / 16);
-
-  float scale = 1.0f / std::sqrt(static_cast<float>(head_dim));
-
-  for (int h = 0; h < num_heads; ++h) {
-    /**
-     * Extract Q, K, V heads from joint matrix `qkv` and compute attention
-     * scores, coefficients, and values.
-     */
-    extract_head_kernel<<<head_grid_dims, block_dims>>>(
-        q_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 0);
-    extract_head_kernel<<<head_grid_dims, block_dims>>>(
-        k_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 1);
-    extract_head_kernel<<<head_grid_dims, block_dims>>>(
-        v_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 2);
-
-    operations::transpose(k_head_transposed, k_head);
-    operations::matmul(attention_head_scores, q_head,
-                       k_head_transposed); // Score = Q * K^T
-    causal_mask_and_scale_kernel<<<score_grid_dims, block_dims>>>(
-        attention_head_scores.d_data, seq_len, scale);
-
-    operations::softmax(attention_head_scores);
-    operations::matmul(attention_head_values, attention_head_scores, v_head);
-
-    /**
-     * Save the results to the attention_value tensor.
-     */
-    insert_head_kernel<<<head_grid_dims, block_dims>>>(
-        attention_value.d_data, attention_head_values.d_data, seq_len,
-        hidden_size, head_dim, h);
-  }
-
-  /**
-   * Fused multi-head attention kernel
-   */
-  // dim3 block_dims(head_dim);
+  // dim3 block_dims(1);
   // dim3 grid_dims(seq_len, num_heads);
-  // int num_warps = 1 + (head_dim - 1) / 32;
-  // multi_head_attention_kernel<<<grid_dims, block_dims,
-  //                               num_warps * sizeof(float)>>>(
-  //     attention_value.d_data, qkv.d_data, seq_len, hidden_size, head_dim);
+  // naive_fused_attention_kernel<<<grid_dims, block_dims,
+  //                                head_dim * sizeof(float)>>>(
+  //     attention_value.d_data, qkv.d_data, hidden_size, head_dim);
+
+  dim3 block_dims(head_dim);
+  dim3 grid_dims(seq_len, num_heads);
+  fused_attention_kernel<<<grid_dims, block_dims>>>(attention_value.d_data,
+                                                    qkv.d_data, hidden_size);
 
   Tensor attention_output({seq_len, hidden_size});
   operations::matmul(attention_output, attention_value,
