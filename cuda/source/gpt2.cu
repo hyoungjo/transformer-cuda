@@ -236,6 +236,189 @@ __global__ void fused_attention_kernel(float *output, const float *qkv,
 }
 
 /**
+ * The kernel implements the flash attention mechanism. It is based on the
+ * second version of the algorithm, presented by the paper "Flash Attention 2:
+ * Fast causal attention with efficient memory usage" by A. R. et al.
+ *
+ * The key optimizations compared to Flash Attention 1 is provided as follows:
+ *  - The position of query block loop and key/value block loop has been
+ *    switched: outer loop iterates over query blocks while the inner loop
+ *    streams key and value blocks. This allows the accumulators for online
+ *    softmax to stay in registers, not in shared memory.
+ *  - The blocks are launched to parallelize across the sequence length
+ *    dimension, not just batch and head dimensions (version 1) to maximize the
+ *    GPU occupancy.
+ */
+
+#define QUERY_BLOCK_SIZE 32
+#define KEY_VALUE_BLOCK_SIZE 64
+#define HEAD_DIM 64
+#define NUM_WARPS HEAD_DIM / 32
+
+__global__ void flash_attention_warp_kernel(float *output, const float *qkv,
+                                            int seq_len, int hidden_size,
+                                            int head_dim) {
+  /**
+   * blockDim.x == 32
+   * blockDim.y == QUERY_BLOCK_SIZE
+   */
+  int head_idx = blockIdx.x;
+  int query_block_idx = blockIdx.y;
+  int row = query_block_idx * QUERY_BLOCK_SIZE + threadIdx.y;
+  int tx = threadIdx.x;
+
+  /**
+   * Calculate the offset in the qkv tensor for a given token, query/key/value
+   * type, head, and dimension.
+   *
+   * [ Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h ]
+   *
+   * `int qkv_idx`: 0 for query, 1 for key, 2 for value
+   */
+  auto calculate_qkv_offset = [&](int token_idx, int qkv_idx, int head_idx,
+                                  int dim_idx) {
+    return token_idx * (3 * hidden_size) + qkv_idx * hidden_size +
+           head_idx * head_dim + dim_idx;
+  };
+
+  /**
+   * Shared Memory Tiles
+   *
+   * The size of shared memory should be known at compile time. Therefore,
+   * to avoid dynamic shared memory allocation and keep the code simple,
+   * `head_dim` was hardcoded to HEAD_DIM.
+   *
+   * The query is stored as registers for optimization.
+   */
+  __shared__ float key_block[KEY_VALUE_BLOCK_SIZE][HEAD_DIM];
+  __shared__ float value_block[KEY_VALUE_BLOCK_SIZE][HEAD_DIM];
+
+  /**
+   * Each thread within a warp holds NUM_WARPS elements of the query and the
+   * output value.
+   */
+  float query[NUM_WARPS];
+  float out_val[NUM_WARPS];
+  for (int i = 0; i < NUM_WARPS; ++i) {
+    query[i] = 0.0f;
+    out_val[i] = 0.0f;
+  }
+
+  /**
+   * Log-sum-exp trick is applied for numerical stability, and online softmax
+   * is used to avoid storing the entire softmax matrix in memory.
+   */
+  float max = -1e9f;
+  float exp_sum = 0.0f;
+  float scale = 1.0f / sqrtf((float)head_dim);
+
+  /**
+   * Load the query block scattered into registers. Each thread `tx` loads `tx`,
+   * `tx + 32`, `tx + 64`, .. (NUM_WARPS) into registers.
+   *
+   * In GPT2, NUM_WARPS = HEAD_DIM / 32 = 64 / 32 = 2 elements are processed by
+   * each thread.
+   */
+  if (row < seq_len) {
+    for (int i = 0; i < NUM_WARPS; ++i) {
+      int head_dim_idx = tx + i * 32;
+      int q_idx = calculate_qkv_offset(row, 0, head_idx, head_dim_idx);
+      query[i] = qkv[q_idx];
+    }
+  }
+
+  /**
+   * For each key-value block pairs, the queries will be fetched and processed.
+   * The loops are designed to process the ith query with jth key and value.
+   */
+  int num_steps = 1 + (seq_len - 1) / KEY_VALUE_BLOCK_SIZE;
+
+  for (int j = 0; j < num_steps; ++j) {
+    /**
+     * Load the jth key and value blocks into shared memory.
+     *
+     * It is a collaborative load with block stride loop. All threads iterate
+     * over the tile indices until the entire tile is loaded.
+     */
+    int t = threadIdx.y * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * blockDim.y;
+    int kv_block_offset = j * KEY_VALUE_BLOCK_SIZE;
+
+    int tile_size = KEY_VALUE_BLOCK_SIZE * HEAD_DIM;
+    for (int i = t; i < tile_size; i += stride) {
+      int r = i / HEAD_DIM;
+      int c = i % HEAD_DIM;
+
+      int kv_idx = kv_block_offset + r;
+      if (kv_idx < seq_len) {
+        int k_idx = calculate_qkv_offset(kv_idx, 1, head_idx, c);
+        int v_idx = calculate_qkv_offset(kv_idx, 2, head_idx, c);
+        key_block[r][c] = qkv[k_idx];
+        value_block[r][c] = qkv[v_idx];
+      } else {
+        key_block[r][c] = 0.0f;
+        value_block[r][c] = 0.0f;
+      }
+    }
+    __syncthreads();
+
+    /**
+     * Compute the attention output for the ith query with jth key and value.
+     */
+    for (int k = 0; k < KEY_VALUE_BLOCK_SIZE; ++k) {
+      int kv_idx = kv_block_offset + k;
+      if (kv_idx > row) // causal mask
+        continue;
+
+      /**
+       * Compute the attention score (dot product) with the query and key_block.
+       * The query is distributed accross threads, with each thread possessing
+       * NUM_WARPS query values.
+       */
+      float t_score = 0.0f;
+      for (int i = 0; i < NUM_WARPS; ++i) {
+        int head_dim_idx = tx + i * 32;
+        t_score += query[i] * key_block[k][head_dim_idx];
+      }
+
+      float warp_score = t_score;
+      for (int offset = 16; offset > 0; offset /= 2)
+        warp_score += __shfl_xor_sync(0xffffffff, warp_score, offset);
+      float score = warp_score * scale;
+
+      /**
+       * Update max, exp_sum, and out_val for online softmax.
+       * An update for exp_sum is also necessary to apply the new max.
+       */
+      float max_prev = max;
+      max = fmaxf(max, score);
+      float correction = expf(max_prev - max);
+      float exp_score = expf(score - max);
+      exp_sum = exp_sum * correction + exp_score;
+
+      for (int i = 0; i < NUM_WARPS; ++i) {
+        int head_dim_idx = tx + i * 32;
+        out_val[i] *= correction;
+        out_val[i] += exp_score * value_block[k][head_dim_idx];
+      }
+    }
+    __syncthreads();
+  }
+
+  /**
+   * Save the attention output to global memory.
+   * The output layout is [seq_len, hidden_size] (heads concatenated).
+   */
+  if (row < seq_len) {
+    int out_offset = row * hidden_size + head_idx * head_dim;
+    for (int i = 0; i < NUM_WARPS; ++i) {
+      int dim_idx = tx + i * 32;
+      output[out_offset + dim_idx] = out_val[i] / exp_sum;
+    }
+  }
+}
+
+/**
  * Extract the last token's hidden state
  */
 __global__ void extract_last_token_kernel(float *out, const float *in,
@@ -284,11 +467,11 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
 
   Tensor attention_value({seq_len, hidden_size});
 
-  // /**
-  //  * A naive implementation of multi-head attention. It allocates Q, K, V for
-  //  * each head and computes attention scores, coefficients, and values for
-  //  * each head with kernels from `operations.cu`.
-  //  */
+  /**
+   * A naive implementation of multi-head attention. It allocates Q, K, V for
+   * each head and computes attention scores, coefficients, and values for
+   * each head with kernels from `operations.cu`.
+   */
   // Tensor q_head({seq_len, head_dim});
   // Tensor k_head({seq_len, head_dim});
   // Tensor k_head_transposed({head_dim, seq_len});
@@ -334,17 +517,23 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
   /**
    * Implementation of naive and optimized fused attention kernel.
    */
-
   // dim3 block_dims(1);
   // dim3 grid_dims(seq_len, num_heads);
   // naive_fused_attention_kernel<<<grid_dims, block_dims,
   //                                head_dim * sizeof(float)>>>(
   //     attention_value.d_data, qkv.d_data, hidden_size, head_dim);
+  // dim3 block_dims(head_dim);
+  // dim3 grid_dims(seq_len, num_heads);
+  // fused_attention_kernel<<<grid_dims, block_dims>>>(attention_value.d_data,
+  //                                                   qkv.d_data, hidden_size);
 
-  dim3 block_dims(head_dim);
-  dim3 grid_dims(seq_len, num_heads);
-  fused_attention_kernel<<<grid_dims, block_dims>>>(attention_value.d_data,
-                                                    qkv.d_data, hidden_size);
+  /**
+   * Implementation of the flash attention kernel.
+   */
+  dim3 block_dims(32, QUERY_BLOCK_SIZE);
+  dim3 grid_dims(num_heads, 1 + (seq_len - 1) / QUERY_BLOCK_SIZE);
+  flash_attention_warp_kernel<<<grid_dims, block_dims>>>(
+      attention_value.d_data, qkv.d_data, seq_len, hidden_size, head_dim);
 
   Tensor attention_output({seq_len, hidden_size});
   operations::matmul(attention_output, attention_value,
