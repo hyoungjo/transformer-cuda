@@ -33,5 +33,5 @@ make cuda
 
 # 3. Run
 echo "[SLURM][INFO] Run started on $(hostname) at $(date)"
-nsys profile --stats=true -o profiles/report ./cuda/timer
+nsys profile --stats=true --force-overwrite true -o profiles/report ./cuda/timer
 echo "[SLURM][INFO] Run finished at $(date)"
