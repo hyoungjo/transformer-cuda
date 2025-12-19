@@ -13,12 +13,12 @@
 using namespace std::chrono;
 
 int main() {
-  std::cout << "[CPP][INFO] Loading model weights..." << std::endl;
+  std::cout << "[CUDA][INFO] Loading model weights..." << std::endl;
 
   GPT2 model("data/weights.bin");
 
   int total = 35;
-  std::cout << "[CPP][INFO] Starting inference loop [0, " << total << ")"
+  std::cout << "[CUDA][INFO] Starting inference loop [0, " << total << ")"
             << std::endl;
 
   for (int i = 0; i < total; ++i) {
