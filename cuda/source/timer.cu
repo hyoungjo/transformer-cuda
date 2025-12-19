@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
-#define WARMUPS 3
-#define ITERATIONS 10
+#define WARMUPS 5
+#define ITERATIONS 20
 
 using namespace std::chrono;
 
@@ -17,7 +17,7 @@ int main() {
 
   GPT2 model("data/weights.bin");
 
-  int total = 35;
+  int total = 15;
   std::cout << "[CUDA][INFO] Starting inference loop [0, " << total << ")"
             << std::endl;
 
