@@ -20,6 +20,11 @@ def main():
 
     print("[PYTHON][INFO] Loading tokenizer and model")
 
+    # "highest": FP32 (default, uses CUDA cores)
+    # "high": TF32 (10-bit mantissa, FP16 precision and FP32 range, uses Tensor cores)
+    # "medium": bfloat16 (lower precision, fastest)
+    torch.set_float32_matmul_precision("high")  # set to "high" for fair comparison
+
     model_name = "gpt2"
     tokenizer = GPT2Tokenizer.from_pretrained(model_name)
     model = GPT2LMHeadModel.from_pretrained(model_name).to(device)
@@ -35,6 +40,14 @@ def main():
     for idx, text in enumerate(texts):
         inputs = tokenizer(text, return_tensors="pt").to(device)
         _, seq_len = inputs["input_ids"].size()
+
+        # optimize the model with compile, since the model runs with naive attention in eager mode (default)
+        torch._dynamo.reset()
+        model = torch.compile(model, dynamic=True)
+
+        # per-sample warmup after compilation, builds the model on the first request
+        with torch.no_grad():
+            model(**inputs)
 
         # runs a warm up period and sets block size
         timer = benchmark.Timer(
