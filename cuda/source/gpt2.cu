@@ -449,7 +449,9 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
   std::string prefix = "transformer.h." + std::to_string(layer_idx) + ".";
   int64_t seq_len = x.shape[0];
 
-  Tensor x_norm = x;
+  // Tensor x_norm = x;
+  cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
+             cudaMemcpyDeviceToDevice);
   operations::layer_norm(x_norm, weights[prefix + "ln_1.weight"],
                          weights[prefix + "ln_1.bias"]);
 
@@ -461,11 +463,11 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
    * [ Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h ]
    * where hidden_size = num_heads * head_dim
    */
-  Tensor qkv({seq_len, 3 * hidden_size});
+  // Tensor qkv({seq_len, 3 * hidden_size});
   operations::matmul(qkv, x_norm, weights[prefix + "attn.c_attn.weight"]);
   operations::add_bias(qkv, weights[prefix + "attn.c_attn.bias"]);
 
-  Tensor attention_value({seq_len, hidden_size});
+  // Tensor attention_value({seq_len, hidden_size});
 
   /**
    * A naive implementation of multi-head attention. It allocates Q, K, V for
@@ -535,7 +537,7 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
   flash_attention_warp_kernel<<<grid_dims, block_dims>>>(
       attention_value.d_data, qkv.d_data, seq_len, hidden_size, head_dim);
 
-  Tensor attention_output({seq_len, hidden_size});
+  // Tensor attention_output({seq_len, hidden_size});
   operations::matmul(attention_output, attention_value,
                      weights[prefix + "attn.c_proj.weight"]);
   operations::add_bias(attention_output, weights[prefix + "attn.c_proj.bias"]);
@@ -548,17 +550,19 @@ void GPT2::mlp_block(Tensor &x, int layer_idx) {
   std::string prefix = "transformer.h." + std::to_string(layer_idx) + ".";
   int64_t seq_len = x.shape[0];
 
-  Tensor x_norm = x;
+  // Tensor x_norm = x;
+  cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
+             cudaMemcpyDeviceToDevice);
   operations::layer_norm(x_norm, weights[prefix + "ln_2.weight"],
                          weights[prefix + "ln_2.bias"]);
 
-  Tensor x1({seq_len, mlp_size});
+  // Tensor x1({seq_len, mlp_size});
   operations::matmul(x1, x_norm, weights[prefix + "mlp.c_fc.weight"]);
   operations::add_bias(x1, weights[prefix + "mlp.c_fc.bias"]);
 
   operations::gelu(x1);
 
-  Tensor x2({seq_len, hidden_size});
+  // Tensor x2({seq_len, hidden_size});
   operations::matmul(x2, x1, weights[prefix + "mlp.c_proj.weight"]);
   operations::add_bias(x2, weights[prefix + "mlp.c_proj.bias"]);
 
@@ -571,6 +575,20 @@ Tensor GPT2::forward(int *input_ids, int seq_len) {
   operations::embed(x, weights["transformer.wte.weight"],
                     weights["transformer.wpe.weight"], input_ids, seq_len,
                     hidden_size);
+
+  /**
+   * Pre-allocate all temporary tensors.
+   *
+   * While PyTorch manages the memory overhead using a caching memory allocator,
+   * this implementation avoids runtime allocation and deallocation during the
+   * forward pass.
+   */
+  x_norm = Tensor({seq_len, hidden_size});
+  qkv = Tensor({seq_len, 3 * hidden_size});
+  attention_value = Tensor({seq_len, hidden_size});
+  attention_output = Tensor({seq_len, hidden_size});
+  x1 = Tensor({seq_len, mlp_size});
+  x2 = Tensor({seq_len, hidden_size});
 
   for (int i = 0; i < num_layers; ++i) {
     attention_block(x, i);

@@ -16,6 +16,13 @@ private:
 
   std::map<std::string, Tensor> weights;
 
+  Tensor x_norm;
+  Tensor qkv;
+  Tensor attention_value;
+  Tensor attention_output;
+  Tensor x1;
+  Tensor x2;
+
   void attention_block(Tensor &x, int layer_idx);
   void mlp_block(Tensor &x, int layer_idx);
 
