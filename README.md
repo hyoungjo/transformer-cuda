@@ -11,13 +11,28 @@ conda create -n cuda --override-channels \
     pytorch pytorch-cuda=12.1 cuda-toolkit gxx_linux-64
 ```
 
-### Python
-
 ```sh
 conda activate cuda
 pip3 install numpy transformers
 ```
 
+### Python
+
 ```sh
-sbatch python/run.sh
+sbatch python/main.sh
+sbatch python/timer.sh
+```
+
+### C++
+
+```sh
+sbatch cpp/main.sh
+sbatch cpp/timer.sh
+```
+
+### CUDA
+
+```sh
+sbatch cuda/main.sh
+sbatch cuda/timer.sh
 ```
