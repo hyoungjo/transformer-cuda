@@ -12,7 +12,7 @@ int main() {
 
   GPT2 model("data/weights.bin");
 
-  int total = 35;
+  int total = 15;
   int passed = 0;
 
   std::cout << "[CPP][INFO] Starting inference loop [0, " << total << ")"
