@@ -4,8 +4,18 @@
 #include <cmath>
 #include <cstdint>
 #include <cuda_runtime.h>
+#include <mma.h>
 
-#define TILE_SIZE 16
+using namespace nvcuda;
+
+#define TILE_SIZE 32
+
+// Ampere Tensor Core Tile Configuration
+#define WMMA_M 16
+#define WMMA_N 16
+#define WMMA_K 8
+
+#define SUB_TILE_SIZE 16 // multiple of WMMA_K
 
 namespace operations {
 
@@ -185,6 +195,107 @@ __global__ void matrix_multiplication_kernel(float *out, const float *A,
 
   if (row < M && col < N) {
     out[row * N + col] = val;
+  }
+}
+
+/**
+ * Perform matrix multiplication using Tensor Cores.
+ *
+ * A block consists of 128 threads (32 x 4 warps). Since Tensor Cores operate on
+ * 16 x 16 matrices, the block's 32 x 32 tile is divided into four sections.
+ */
+__global__ void tensor_core_matrix_multiplication_kernel(float *out,
+                                                         const float *A,
+                                                         const float *B, int M,
+                                                         int N, int K) {
+  int t = threadIdx.x;
+  int block_row_offset = blockIdx.y * TILE_SIZE;
+  int block_col_offset = blockIdx.x * TILE_SIZE;
+
+  /**
+   * Shared memory for the tiles. The tile is padded (+4) to avoid shared memory
+   * bank conflicts. The padding of 4 matches the size of burst and wmma loads.
+   */
+  __shared__ float As[TILE_SIZE][SUB_TILE_SIZE + 4];
+  __shared__ float Bs[SUB_TILE_SIZE][TILE_SIZE + 4];
+  __shared__ float Cs[TILE_SIZE][TILE_SIZE + 4];
+
+  /**
+   * `acc` is a special hardware register that holds a 16 x 16 matrix of sums.
+   */
+  wmma::fragment<wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, float> acc;
+  wmma::fill_fragment(acc, 0.0f);
+
+  /**
+   * Let's iterate with the size of the sub-tile.
+   *
+   * Each loop processes 32 x 16 of As and 16 x 32 of Bs. This leaves two 16 x
+   * 16 sub-tiles for As and Bs each. As a result, 2 x 2 = 4 sub-tile matrix
+   * multiplications take place, handled by each warp.
+   */
+  int warp_idx = threadIdx.x / 32;
+  int warp_row = (warp_idx / 2) * 16;
+  int warp_col = (warp_idx % 2) * 16;
+
+  for (int k = 0; k < K; k += SUB_TILE_SIZE) {
+    /**
+     * Load As and Bs tiles with 32 x 4 threads (128 threads).
+     * Each tile has 32 x 16 = 512 elements, and therefore each thread
+     * loads 512 / 128 = 4 elements.
+     */
+    int num_elements = TILE_SIZE * SUB_TILE_SIZE;
+    int r, c, gr, gc;
+    for (int i = t; i < num_elements; i += blockDim.x) {
+      r = i / SUB_TILE_SIZE;
+      c = i % SUB_TILE_SIZE;
+      gr = block_row_offset + r;
+      gc = k + c;
+      As[r][c] = (gr < M && gc < K) ? A[gr * K + gc] : 0.0f;
+      r = i / TILE_SIZE;
+      c = i % TILE_SIZE;
+      gr = k + r;
+      gc = block_col_offset + c;
+      Bs[r][c] = (gr < K && gc < N) ? B[gr * N + gc] : 0.0f;
+    }
+    __syncthreads();
+
+    /**
+     * Tensor core matrix multiplication. Since Tensor Cores consume WMMA_K (8)
+     * at a time, this iterates over the SUB_TILE_SIZE (16).
+     */
+    for (int i = 0; i < SUB_TILE_SIZE; i += WMMA_K) {
+      wmma::fragment<wmma::matrix_a, WMMA_M, WMMA_N, WMMA_K,
+                     wmma::precision::tf32, wmma::row_major>
+          a_fragment;
+      wmma::fragment<wmma::matrix_b, WMMA_M, WMMA_N, WMMA_K,
+                     wmma::precision::tf32, wmma::row_major>
+          b_fragment;
+      wmma::load_matrix_sync(a_fragment, &As[warp_row][i], SUB_TILE_SIZE + 4);
+      wmma::load_matrix_sync(b_fragment, &Bs[i][warp_col], TILE_SIZE + 4);
+      wmma::mma_sync(acc, a_fragment, b_fragment, acc);
+    }
+    __syncthreads();
+  }
+
+  /**
+   * Each warp writes the result (16 x 16) into `Cs`.
+   */
+  wmma::store_matrix_sync(&Cs[warp_row][warp_col], acc, TILE_SIZE + 4,
+                          wmma::mem_row_major);
+  __syncthreads();
+
+  /**
+   * Write `Cs` to the global memory `out`.
+   */
+  int num_elements = TILE_SIZE * TILE_SIZE;
+  for (int i = t; i < num_elements; i += blockDim.x) {
+    int r = i / TILE_SIZE;
+    int c = i % TILE_SIZE;
+    int gr = block_row_offset + r;
+    int gc = block_col_offset + c;
+    if (gr < M && gc < N) {
+      out[gr * N + gc] = Cs[r][c];
+    }
   }
 }
 
@@ -530,12 +641,17 @@ void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
   int64_t K = A.shape[1];
   int64_t N = B.shape[1];
 
-  dim3 block_dims(TILE_SIZE, TILE_SIZE);
+  // dim3 block_dims(TILE_SIZE, TILE_SIZE);
+  // dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
+  // // naive_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
+  // //     out.d_data, A.d_data, B.d_data, M, N, K);
+  // matrix_multiplication_kernel<<<grid_dims, block_dims>>>(out.d_data,
+  // A.d_data, B.d_data, M, N, K);
+
+  dim3 block_dims(128); // 32 x 4 warps
   dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
-  // naive_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
-  //     out.d_data, A.d_data, B.d_data, M, N, K);
-  matrix_multiplication_kernel<<<grid_dims, block_dims>>>(out.d_data, A.d_data,
-                                                          B.d_data, M, N, K);
+  tensor_core_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
+      out.d_data, A.d_data, B.d_data, M, N, K);
 }
 
 void add(Tensor &x, const Tensor &y) {
