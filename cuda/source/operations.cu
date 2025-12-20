@@ -630,9 +630,10 @@ void transpose(Tensor &out, const Tensor &x) {
 
   dim3 block_dims(TILE_SIZE, TILE_SIZE);
   dim3 grid_dims(1 + (cols - 1) / TILE_SIZE, 1 + (rows - 1) / TILE_SIZE);
-  // naive_transpose_kernel<<<grid_dims, block_dims>>>(out.d_data, x.d_data,
-  // rows, cols);
-  transpose_kernel<<<grid_dims, block_dims>>>(out.d_data, x.d_data, rows, cols);
+  naive_transpose_kernel<<<grid_dims, block_dims>>>(out.d_data, x.d_data, rows,
+                                                    cols);
+  // transpose_kernel<<<grid_dims, block_dims>>>(out.d_data, x.d_data, rows,
+  // cols);
 }
 
 void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
@@ -641,17 +642,18 @@ void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
   int64_t K = A.shape[1];
   int64_t N = B.shape[1];
 
-  // dim3 block_dims(TILE_SIZE, TILE_SIZE);
-  // dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
-  // // naive_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
-  // //     out.d_data, A.d_data, B.d_data, M, N, K);
-  // matrix_multiplication_kernel<<<grid_dims, block_dims>>>(out.d_data,
-  // A.d_data, B.d_data, M, N, K);
-
-  dim3 block_dims(128); // 32 x 4 warps
+  dim3 block_dims(TILE_SIZE, TILE_SIZE);
   dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
-  tensor_core_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
+  naive_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
       out.d_data, A.d_data, B.d_data, M, N, K);
+  // matrix_multiplication_kernel<<<grid_dims, block_dims>>>(out.d_data,
+  // A.d_data,
+  //                                                         B.d_data, M, N, K);
+
+  // dim3 block_dims(128); // 32 x 4 warps
+  // dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
+  // tensor_core_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
+  //     out.d_data, A.d_data, B.d_data, M, N, K);
 }
 
 void add(Tensor &x, const Tensor &y) {
@@ -706,16 +708,16 @@ void layer_norm(Tensor &x, const Tensor &weight, const Tensor &bias,
   int seq_len = x.shape[0];
   int hidden_size = x.shape[1];
 
-  // dim3 block_dims(1);
-  // dim3 grid_dims(seq_len);
-  // naive_layer_norm_kernel<<<grid_dims, block_dims>>>(
-  //     x.d_data, weight.d_data, bias.d_data, hidden_size, eps);
-
-  dim3 block_dims(1024);
+  dim3 block_dims(1);
   dim3 grid_dims(seq_len);
-  int num_warps = block_dims.x / 32;
-  layer_norm_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
+  naive_layer_norm_kernel<<<grid_dims, block_dims>>>(
       x.d_data, weight.d_data, bias.d_data, hidden_size, eps);
+
+  // dim3 block_dims(1024);
+  // dim3 grid_dims(seq_len);
+  // int num_warps = block_dims.x / 32;
+  // layer_norm_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
+  //     x.d_data, weight.d_data, bias.d_data, hidden_size, eps);
 }
 
 void softmax(Tensor &x) {
@@ -723,16 +725,15 @@ void softmax(Tensor &x) {
   int64_t dim_size = x.shape.back();       // last dimension
   int64_t num_rows = x.numel() / dim_size; // flattened rows
 
-  // dim3 block_dims(1);
-  // dim3 grid_dims(num_rows);
-  // naive_softmax_kernel<<<grid_dims, block_dims>>>(x.d_data, dim_size,
-  // num_rows);
-
-  dim3 block_dims(1024);
+  dim3 block_dims(1);
   dim3 grid_dims(num_rows);
-  int num_warps = block_dims.x / 32;
-  softmax_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
-      x.d_data, dim_size, num_rows);
+  naive_softmax_kernel<<<grid_dims, block_dims>>>(x.d_data, dim_size, num_rows);
+
+  // dim3 block_dims(1024);
+  // dim3 grid_dims(num_rows);
+  // int num_warps = block_dims.x / 32;
+  // softmax_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
+  //     x.d_data, dim_size, num_rows);
 }
 
 } // namespace operations
