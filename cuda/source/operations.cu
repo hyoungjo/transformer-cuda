@@ -437,7 +437,8 @@ __global__ void layer_norm_kernel(float *x, const float *weight,
 
   // float t_sum_of_squares = 0.0f;
   // for (int i = t; i < hidden_size; i += blockDim.x) {
-  //   t_sum_of_squares += std::pow(data[i] - mean, 2);
+  //   float diff = data[i] - mean;
+  //   t_sum_of_squares += diff * diff;
   // }
   // reduction[t] = t_sum_of_squares;
 
@@ -452,7 +453,8 @@ __global__ void layer_norm_kernel(float *x, const float *weight,
 
   float t_sum_of_squares = 0.0f;
   for (int i = t; i < hidden_size; i += blockDim.x) {
-    t_sum_of_squares += std::pow(data[i] - mean, 2);
+    float diff = data[i] - mean;
+    t_sum_of_squares += diff * diff;
   }
 
   float warp_sum_of_squares = warp_reduce_sum(t_sum_of_squares);
