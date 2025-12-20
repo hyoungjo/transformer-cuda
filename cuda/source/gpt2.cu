@@ -524,18 +524,18 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
   // naive_fused_attention_kernel<<<grid_dims, block_dims,
   //                                head_dim * sizeof(float)>>>(
   //     attention_value.d_data, qkv.d_data, hidden_size, head_dim);
-  dim3 block_dims(head_dim);
-  dim3 grid_dims(seq_len, num_heads);
-  fused_attention_kernel<<<grid_dims, block_dims>>>(attention_value.d_data,
-                                                    qkv.d_data, hidden_size);
+  // dim3 block_dims(head_dim);
+  // dim3 grid_dims(seq_len, num_heads);
+  // fused_attention_kernel<<<grid_dims, block_dims>>>(attention_value.d_data,
+  //                                                   qkv.d_data, hidden_size);
 
   /**
    * Implementation of the flash attention kernel.
    */
-  // dim3 block_dims(32, QUERY_BLOCK_SIZE);
-  // dim3 grid_dims(num_heads, 1 + (seq_len - 1) / QUERY_BLOCK_SIZE);
-  // flash_attention_warp_kernel<<<grid_dims, block_dims>>>(
-  //     attention_value.d_data, qkv.d_data, seq_len, hidden_size, head_dim);
+  dim3 block_dims(32, QUERY_BLOCK_SIZE);
+  dim3 grid_dims(num_heads, 1 + (seq_len - 1) / QUERY_BLOCK_SIZE);
+  flash_attention_warp_kernel<<<grid_dims, block_dims>>>(
+      attention_value.d_data, qkv.d_data, seq_len, hidden_size, head_dim);
 
   Tensor attention_output({seq_len, hidden_size});
   operations::matmul(attention_output, attention_value,
