@@ -725,15 +725,16 @@ void softmax(Tensor &x) {
   int64_t dim_size = x.shape.back();       // last dimension
   int64_t num_rows = x.numel() / dim_size; // flattened rows
 
-  dim3 block_dims(1);
-  dim3 grid_dims(num_rows);
-  naive_softmax_kernel<<<grid_dims, block_dims>>>(x.d_data, dim_size, num_rows);
-
-  // dim3 block_dims(1024);
+  // dim3 block_dims(1);
   // dim3 grid_dims(num_rows);
-  // int num_warps = block_dims.x / 32;
-  // softmax_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
-  //     x.d_data, dim_size, num_rows);
+  // naive_softmax_kernel<<<grid_dims, block_dims>>>(x.d_data, dim_size,
+  // num_rows);
+
+  dim3 block_dims(256);
+  dim3 grid_dims(num_rows);
+  int num_warps = block_dims.x / 32;
+  softmax_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
+      x.d_data, dim_size, num_rows);
 }
 
 } // namespace operations
