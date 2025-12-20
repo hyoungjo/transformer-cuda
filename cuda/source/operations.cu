@@ -710,16 +710,16 @@ void layer_norm(Tensor &x, const Tensor &weight, const Tensor &bias,
   int seq_len = x.shape[0];
   int hidden_size = x.shape[1];
 
-  dim3 block_dims(1);
-  dim3 grid_dims(seq_len);
-  naive_layer_norm_kernel<<<grid_dims, block_dims>>>(
-      x.d_data, weight.d_data, bias.d_data, hidden_size, eps);
-
-  // dim3 block_dims(1024);
+  // dim3 block_dims(1);
   // dim3 grid_dims(seq_len);
-  // int num_warps = block_dims.x / 32;
-  // layer_norm_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
+  // naive_layer_norm_kernel<<<grid_dims, block_dims>>>(
   //     x.d_data, weight.d_data, bias.d_data, hidden_size, eps);
+
+  dim3 block_dims(256);
+  dim3 grid_dims(seq_len);
+  int num_warps = block_dims.x / 32;
+  layer_norm_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
+      x.d_data, weight.d_data, bias.d_data, hidden_size, eps);
 }
 
 void softmax(Tensor &x) {
