@@ -1,0 +1,35 @@
+make -C cpp
+make[1]: Entering directory '/home/hyoungjo/transformer-cuda/cpp'
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O3 -march=native -Iinclude -c source/timer.cpp -o source/timer.o
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O3 -march=native -Iinclude source/tensor.o source/operations.o source/utils.o source/gpt2.o source/timer.o -o timer
+make[1]: Leaving directory '/home/hyoungjo/transformer-cuda/cpp'
+[SLURM][INFO] Run started on baram at Sat Dec 20 03:39:48 AM KST 2025
+[CPP][INFO] Loading model weights...
+[CPP][INFO] Loading data from data/weights.bin
+[CPP][INFO] Starting inference loop
+[CPP][INFO] Loading data from data/0/input_ids.bin
+Text 0 | Seq Len: 13
+   Median: 4865 ms
+   IQR:    25 ms (4865 to 4890)
+   1 warmups, 5 iterations
+[CPP][INFO] Loading data from data/2/input_ids.bin
+Text 2 | Seq Len: 64
+   Median: 23818 ms
+   IQR:    1135 ms (23681 to 24816)
+   1 warmups, 5 iterations
+[CPP][INFO] Loading data from data/3/input_ids.bin
+Text 3 | Seq Len: 200
+   Median: 74133 ms
+   IQR:    341 ms (73818 to 74159)
+   1 warmups, 5 iterations
+[CPP][INFO] Loading data from data/13/input_ids.bin
+Text 13 | Seq Len: 371
+   Median: 132801 ms
+   IQR:    3744 ms (132391 to 136135)
+   1 warmups, 5 iterations
+[CPP][INFO] Loading data from data/14/input_ids.bin
+Text 14 | Seq Len: 732
+   Median: 269317 ms
+   IQR:    847 ms (268728 to 269575)
+   1 warmups, 5 iterations
+[SLURM][INFO] Run finished at Sat Dec 20 04:30:40 AM KST 2025

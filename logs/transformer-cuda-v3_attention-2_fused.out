@@ -1,0 +1,101 @@
+make -C cuda
+make[1]: Entering directory '/home/hyoungjo/transformer-cuda/cuda'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/home/hyoungjo/transformer-cuda/cuda'
+[SLURM][INFO] Run started on baram at Sat Dec 20 08:14:53 PM KST 2025
+[CUDA][INFO] Loading model weights...
+[CUDA][INFO] Loading data from data/weights.bin
+[CUDA][INFO] Starting inference loop [0, 15)
+[CUDA][INFO] Loading data from data/0/input_ids.bin
+[CUDA][TRACE] Input size: 13 tokens
+[CUDA][TRACE] Predicted token_id: 318
+[CUDA][TRACE] Max probability: 0.150253
+[CUDA][INFO] Loading data from data/0/probs.bin
+[CUDA][INFO] Sample 0 Passed | Max Error: 0.0010519
+[CUDA][INFO] Loading data from data/1/input_ids.bin
+[CUDA][TRACE] Input size: 17 tokens
+[CUDA][TRACE] Predicted token_id: 326
+[CUDA][TRACE] Max probability: 0.558207
+[CUDA][INFO] Loading data from data/1/probs.bin
+[CUDA][INFO] Sample 1 Passed | Max Error: 0.00392735
+[CUDA][INFO] Loading data from data/2/input_ids.bin
+[CUDA][TRACE] Input size: 64 tokens
+[CUDA][TRACE] Predicted token_id: 326
+[CUDA][TRACE] Max probability: 0.361614
+[CUDA][INFO] Loading data from data/2/probs.bin
+[CUDA][INFO] Sample 2 Passed | Max Error: 0.00524408
+[CUDA][INFO] Loading data from data/3/input_ids.bin
+[CUDA][TRACE] Input size: 200 tokens
+[CUDA][TRACE] Predicted token_id: 1900
+[CUDA][TRACE] Max probability: 0.0419155
+[CUDA][INFO] Loading data from data/3/probs.bin
+[CUDA][INFO] Sample 3 Passed | Max Error: 0.00118044
+[CUDA][INFO] Loading data from data/4/input_ids.bin
+[CUDA][TRACE] Input size: 301 tokens
+[CUDA][TRACE] Predicted token_id: 302
+[CUDA][TRACE] Max probability: 0.0424002
+[CUDA][INFO] Loading data from data/4/probs.bin
+[CUDA][INFO] Sample 4 Passed | Max Error: 0.00110926
+[CUDA][INFO] Loading data from data/5/input_ids.bin
+[CUDA][TRACE] Input size: 305 tokens
+[CUDA][TRACE] Predicted token_id: 262
+[CUDA][TRACE] Max probability: 0.198271
+[CUDA][INFO] Loading data from data/5/probs.bin
+[CUDA][INFO] Sample 5 Passed | Max Error: 0.00199868
+[CUDA][INFO] Loading data from data/6/input_ids.bin
+[CUDA][TRACE] Input size: 320 tokens
+[CUDA][TRACE] Predicted token_id: 1716
+[CUDA][TRACE] Max probability: 0.0735145
+[CUDA][INFO] Loading data from data/6/probs.bin
+[CUDA][INFO] Sample 6 Passed | Max Error: 0.00120299
+[CUDA][INFO] Loading data from data/7/input_ids.bin
+[CUDA][TRACE] Input size: 332 tokens
+[CUDA][TRACE] Predicted token_id: 262
+[CUDA][TRACE] Max probability: 0.159325
+[CUDA][INFO] Loading data from data/7/probs.bin
+[CUDA][INFO] Sample 7 Passed | Max Error: 0.000445308
+[CUDA][INFO] Loading data from data/8/input_ids.bin
+[CUDA][TRACE] Input size: 342 tokens
+[CUDA][TRACE] Predicted token_id: 257
+[CUDA][TRACE] Max probability: 0.114253
+[CUDA][INFO] Loading data from data/8/probs.bin
+[CUDA][INFO] Sample 8 Passed | Max Error: 0.00192176
+[CUDA][INFO] Loading data from data/9/input_ids.bin
+[CUDA][TRACE] Input size: 344 tokens
+[CUDA][TRACE] Predicted token_id: 262
+[CUDA][TRACE] Max probability: 0.15979
+[CUDA][INFO] Loading data from data/9/probs.bin
+[CUDA][INFO] Sample 9 Passed | Max Error: 0.00106099
+[CUDA][INFO] Loading data from data/10/input_ids.bin
+[CUDA][TRACE] Input size: 363 tokens
+[CUDA][TRACE] Predicted token_id: 318
+[CUDA][TRACE] Max probability: 0.176639
+[CUDA][INFO] Loading data from data/10/probs.bin
+[CUDA][INFO] Sample 10 Passed | Max Error: 0.00366549
+[CUDA][INFO] Loading data from data/11/input_ids.bin
+[CUDA][TRACE] Input size: 364 tokens
+[CUDA][TRACE] Predicted token_id: 307
+[CUDA][TRACE] Max probability: 0.0868099
+[CUDA][INFO] Loading data from data/11/probs.bin
+[CUDA][INFO] Sample 11 Passed | Max Error: 0.00215984
+[CUDA][INFO] Loading data from data/12/input_ids.bin
+[CUDA][TRACE] Input size: 367 tokens
+[CUDA][TRACE] Predicted token_id: 468
+[CUDA][TRACE] Max probability: 0.103348
+[CUDA][INFO] Loading data from data/12/probs.bin
+[CUDA][INFO] Sample 12 Passed | Max Error: 0.00204113
+[CUDA][INFO] Loading data from data/13/input_ids.bin
+[CUDA][TRACE] Input size: 371 tokens
+[CUDA][TRACE] Predicted token_id: 561
+[CUDA][TRACE] Max probability: 0.102598
+[CUDA][INFO] Loading data from data/13/probs.bin
+[CUDA][INFO] Sample 13 Passed | Max Error: 0.00248442
+[CUDA][INFO] Loading data from data/14/input_ids.bin
+[CUDA][TRACE] Input size: 732 tokens
+[CUDA][TRACE] Predicted token_id: 262
+[CUDA][TRACE] Max probability: 0.219229
+[CUDA][INFO] Loading data from data/14/probs.bin
+[CUDA][INFO] Sample 14 Passed | Max Error: 0.00261927
+------------------------------------------------
+[CUDA][INFO] Final Result: 15/15 passed.
+[SLURM][INFO] Run finished at Sat Dec 20 08:14:56 PM KST 2025
