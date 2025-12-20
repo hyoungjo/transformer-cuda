@@ -519,15 +519,15 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
   /**
    * Implementation of naive and optimized fused attention kernel.
    */
-  dim3 block_dims(1);
-  dim3 grid_dims(seq_len, num_heads);
-  naive_fused_attention_kernel<<<grid_dims, block_dims,
-                                 head_dim * sizeof(float)>>>(
-      attention_value.d_data, qkv.d_data, hidden_size, head_dim);
-  // dim3 block_dims(head_dim);
+  // dim3 block_dims(1);
   // dim3 grid_dims(seq_len, num_heads);
-  // fused_attention_kernel<<<grid_dims, block_dims>>>(attention_value.d_data,
-  //                                                   qkv.d_data, hidden_size);
+  // naive_fused_attention_kernel<<<grid_dims, block_dims,
+  //                                head_dim * sizeof(float)>>>(
+  //     attention_value.d_data, qkv.d_data, hidden_size, head_dim);
+  dim3 block_dims(head_dim);
+  dim3 grid_dims(seq_len, num_heads);
+  fused_attention_kernel<<<grid_dims, block_dims>>>(attention_value.d_data,
+                                                    qkv.d_data, hidden_size);
 
   /**
    * Implementation of the flash attention kernel.
