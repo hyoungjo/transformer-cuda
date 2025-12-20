@@ -8,7 +8,7 @@
 
 using namespace nvcuda;
 
-#define TILE_SIZE 32
+#define TILE_SIZE 16
 
 // Ampere Tensor Core Tile Configuration
 #define WMMA_M 16
@@ -644,11 +644,10 @@ void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
 
   dim3 block_dims(TILE_SIZE, TILE_SIZE);
   dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
-  naive_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
-      out.d_data, A.d_data, B.d_data, M, N, K);
-  // matrix_multiplication_kernel<<<grid_dims, block_dims>>>(out.d_data,
-  // A.d_data,
-  //                                                         B.d_data, M, N, K);
+  // naive_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
+  //     out.d_data, A.d_data, B.d_data, M, N, K);
+  matrix_multiplication_kernel<<<grid_dims, block_dims>>>(out.d_data, A.d_data,
+                                                          B.d_data, M, N, K);
 
   // dim3 block_dims(128); // 32 x 4 warps
   // dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
