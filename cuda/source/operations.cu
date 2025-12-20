@@ -632,10 +632,10 @@ void transpose(Tensor &out, const Tensor &x) {
 
   dim3 block_dims(TILE_SIZE, TILE_SIZE);
   dim3 grid_dims(1 + (cols - 1) / TILE_SIZE, 1 + (rows - 1) / TILE_SIZE);
-  naive_transpose_kernel<<<grid_dims, block_dims>>>(out.d_data, x.d_data, rows,
-                                                    cols);
-  // transpose_kernel<<<grid_dims, block_dims>>>(out.d_data, x.d_data, rows,
-  // cols);
+  // naive_transpose_kernel<<<grid_dims, block_dims>>>(out.d_data, x.d_data,
+  // rows,
+  //                                                   cols);
+  transpose_kernel<<<grid_dims, block_dims>>>(out.d_data, x.d_data, rows, cols);
 }
 
 void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
