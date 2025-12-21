@@ -10,6 +10,8 @@ Although the transformer architectures have become the foundation of modern larg
 
 The objective is to implement a GPT-2 style (decoder-only) transformer from scratch. Starting with a naive C++ CPU-based implementation of the model, the project bridges the performance gap by migrating the model’s entire inference workload from the CPU to the GPU. During the optimization process, all acceleration is achieved through raw CUDA C++ kernels, strictly avoiding off-the-shelf NVIDIA CUDA libraries such as cuBLAS or cuDNN.
 
+More details can be found in the [report](./docs/Project%20Report.pdf).
+
 ### PyTorch (Upper Bound)
 
 The PyTorch implementation is used to export model weights and generate validation datasets (inputs and expected outputs) to verify the correctness of the C++ and CUDA versions. To ensure a competitive baseline, the model runs with TensorFloat-32 (TF32) precision enabled and utilizes torch.compile to leverage kernel fusion and optimization. 
