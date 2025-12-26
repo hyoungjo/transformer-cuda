@@ -257,3 +257,6 @@ pyrightconfig.json
 # Executables
 main
 timer
+
+# Model Parameters
+weights.bin
