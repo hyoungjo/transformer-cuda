@@ -12,14 +12,14 @@
 # Do not request GPU for CPU runs.
 
 # --------------- JOB CONFIGS --------------- #
-#SBATCH --job-name=transformer-cpp-timer
-#SBATCH --time=12:00:00
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
+#SBATCH --job-name=default
+#SBATCH --time=480:00:00
+#SBATCH --output=logs/%x/cpp-timer-%j.out
+#SBATCH --error=logs/%x/cpp-timer-%j.err
 
 # ------------ RESOURCE CONFIGS ------------- #
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=16G
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=40G
 
 # ------------------------------------------- #
 # ---------------- EXECUTION ---------------- #
@@ -34,5 +34,5 @@ make cpp
 
 # 3. Run
 echo "[SLURM][INFO] Run started on $(hostname) at $(date)"
-./cpp/timer
+./cpp/timer "$@"
 echo "[SLURM][INFO] Run finished at $(date)"

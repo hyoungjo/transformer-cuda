@@ -9,7 +9,7 @@ CXXFLAGS := -Wall -Wextra -O3 -march=native
 
 INCLUDE := -Iinclude
 
-COMMON_SRCS := source/tensor.cpp source/operations.cpp source/utils.cpp source/gpt2.cpp
+COMMON_SRCS := source/tensor.cpp source/operations.cpp source/utils.cpp source/gpt2.cpp source/llama3_8b.cpp
 COMMON_OBJS := $(COMMON_SRCS:.cpp=.o)
 
 MAIN_SRC := source/main.cpp
