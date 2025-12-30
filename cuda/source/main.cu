@@ -1,16 +1,19 @@
-#include "gpt2.hpp"
+#include "model.hpp"
 #include "operations.hpp"
 #include "tensor.hpp"
 #include "utils.hpp"
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
-int main() {
+int main(int, char *argv[]) {
   std::cout << "[CUDA][INFO] Loading model weights..." << std::endl;
 
-  GPT2 model("data/weights.bin");
+  std::string model_name = std::string(argv[1]);
+  std::string data_dir = "data/" + model_name + "/";
+  std::unique_ptr<Model> model = utils::load_model(model_name, data_dir);
 
   int total = 15;
   int passed = 0;
@@ -19,9 +22,9 @@ int main() {
             << std::endl;
 
   for (int i = 0; i < total; ++i) {
-    std::string data_path = "data/" + std::to_string(i);
+    std::string data_path = data_dir + std::to_string(i) + "/";
 
-    auto input_data = utils::load_data(data_path + "/input_ids.bin", "cpu");
+    auto input_data = utils::load_data(data_path + "input_ids.bin", "cpu");
     std::vector<int> input_ids;
     for (float id : input_data["input_ids"]) {
       input_ids.push_back(static_cast<int>(id));
@@ -35,7 +38,7 @@ int main() {
     cudaMalloc(&d_input_ids, seq_len * sizeof(int));
     cudaMemcpy(d_input_ids, input_ids.data(), seq_len * sizeof(int),
                cudaMemcpyHostToDevice);
-    Tensor logits = model.forward(d_input_ids, seq_len);
+    Tensor logits = model->forward(d_input_ids, seq_len);
     cudaFree(d_input_ids);
 
     Tensor probs = std::move(logits);
@@ -54,7 +57,7 @@ int main() {
     std::cout << "[CUDA][TRACE] Predicted token_id: " << token_id << std::endl;
     std::cout << "[CUDA][TRACE] Max probability: " << max_prob << std::endl;
 
-    auto expected_data = utils::load_data(data_path + "/probs.bin", "cpu");
+    auto expected_data = utils::load_data(data_path + "probs.bin", "cpu");
     Tensor &expected_probs = expected_data["probs"];
 
     float max_err = 0.0f;

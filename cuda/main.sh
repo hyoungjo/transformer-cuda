@@ -10,14 +10,14 @@
 #SBATCH --gres=gpu:1
 
 # --------------- JOB CONFIGS --------------- #
-#SBATCH --job-name=transformer-cuda
+#SBATCH --job-name=default
 #SBATCH --time=00:10:00
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
+#SBATCH --output=logs/%x/cuda_%j.out
+#SBATCH --error=logs/%x/cuda_%j.err
 
 # ------------ RESOURCE CONFIGS ------------- #
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=8G
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=40G
 
 
 # ------------------------------------------- #
@@ -33,5 +33,5 @@ make cuda
 
 # 3. Run
 echo "[SLURM][INFO] Run started on $(hostname) at $(date)"
-./cuda/main
+./cuda/main "$@"
 echo "[SLURM][INFO] Run finished at $(date)"

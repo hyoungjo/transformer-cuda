@@ -1,4 +1,4 @@
-#include "gpt2.hpp"
+#include "llama3_8b.hpp"
 #include "operations.hpp"
 #include "utils.hpp"
 #include <cmath>
@@ -11,24 +11,20 @@
  */
 
 /**
- * Extract a query, key, or value head from the concatenated `qkv` tensor.
- *
- * [Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h]
- * section_idx: Q = 0, K = 1, V = 2
+ * Extract a head from the query, key, or value tensor.
+ * `stride` handles different shapes for query (hidden_size) vs key and value
+ * (hidden_size / group_size).
  */
-static __global__ void extract_head_kernel(float *head, const float *qkv,
-                                           int seq_len, int hidden_size,
-                                           int head_dim, int head_idx,
-                                           int section_idx) {
+static __global__ void extract_head_kernel(float *head, const float *tensor,
+                                           int seq_len, int stride,
+                                           int head_dim, int head_idx) {
   int col = blockIdx.x * blockDim.x + threadIdx.x;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (row < seq_len && col < head_dim) {
-    int row_offset = row * (3 * hidden_size);
-    int head_offset = section_idx * hidden_size + head_idx * head_dim;
-    int input_idx = row_offset + head_offset + col;
+    int input_idx = row * stride + head_idx * head_dim + col;
     int output_idx = row * head_dim + col;
-    head[output_idx] = qkv[input_idx];
+    head[output_idx] = tensor[input_idx];
   }
 }
 
@@ -45,16 +41,14 @@ static __global__ void insert_head_kernel(float *attention_values,
   int row = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (row < seq_len && col < head_dim) {
-    int row_offset = row * hidden_size;
-    int head_offset = head_idx * head_dim;
     int input_idx = row * head_dim + col;
-    int output_idx = row_offset + head_offset + col;
+    int output_idx = row * hidden_size + head_idx * head_dim + col;
     attention_values[output_idx] = head[input_idx];
   }
 }
 
 /**
- * Apply causal mask to disable attentions future tokens and apply scaling of
+ * Apply causal mask to disable attentions to future tokens and apply scaling of
  * sqrt(d_k) for normalization.
  *
  * Q * K^T / sqrt(d_k)
@@ -92,17 +86,17 @@ static __global__ void causal_mask_and_scale_kernel(float *scores, int seq_len,
  * output for a token, head pair.
  */
 
-static __global__ void naive_fused_attention_kernel(float *output,
-                                                    const float *qkv,
-                                                    int hidden_size,
-                                                    int head_dim) {
+static __global__ void
+naive_fused_attention_kernel(float *output, const float *q, const float *k,
+                             const float *v, int hidden_size, int kv_dim,
+                             int head_dim, int group_size) {
   int token_idx = blockIdx.x;
   int head_idx = blockIdx.y;
+  int kv_head_idx = head_idx / group_size;
 
-  auto calculate_qkv_offset = [&](int token_idx, int qkv_idx, int head_idx,
-                                  int head_dim_idx) {
-    return token_idx * (3 * hidden_size) + qkv_idx * hidden_size +
-           head_idx * head_dim + head_dim_idx;
+  auto calculate_offset = [&](int token_idx, int token_dim, int head_idx,
+                              int head_dim_idx) {
+    return token_idx * token_dim + head_idx * head_dim + head_dim_idx;
   };
 
   float scale = 1.0f / sqrtf((float)head_dim);
@@ -121,9 +115,9 @@ static __global__ void naive_fused_attention_kernel(float *output,
      */
     float score = 0.0f;
     for (int i = 0; i < head_dim; ++i) {
-      int q_idx = calculate_qkv_offset(token_idx, 0, head_idx, i);
-      int k_idx = calculate_qkv_offset(t, 1, head_idx, i);
-      score += qkv[q_idx] * qkv[k_idx];
+      int q_idx = calculate_offset(token_idx, hidden_size, head_idx, i);
+      int k_idx = calculate_offset(t, kv_dim, kv_head_idx, i);
+      score += q[q_idx] * k[k_idx];
     }
     score *= scale;
 
@@ -134,23 +128,27 @@ static __global__ void naive_fused_attention_kernel(float *output,
     exp_sum = exp_sum * correction + exp_score;
 
     for (int i = 0; i < head_dim; ++i) {
-      int v_idx = calculate_qkv_offset(t, 2, head_idx, i);
-      out_val[i] = out_val[i] * correction + exp_score * qkv[v_idx];
+      int v_idx = calculate_offset(t, kv_dim, kv_head_idx, i);
+      out_val[i] = out_val[i] * correction + exp_score * v[v_idx];
     }
   }
 
   for (int i = 0; i < head_dim; ++i) {
-    int out_idx = token_idx * hidden_size + head_idx * head_dim + i;
+    int out_idx = calculate_offset(token_idx, hidden_size, head_idx, i);
     output[out_idx] = out_val[i] / exp_sum;
   }
 }
 
-static __global__ void fused_attention_kernel(float *output, const float *qkv,
-                                              int hidden_size) {
+static __global__ void fused_attention_kernel(float *output, const float *q,
+                                              const float *k, const float *v,
+                                              int hidden_size, int kv_dim,
+                                              int group_size) {
   extern __shared__ float reduction[];
 
   int token_idx = blockIdx.x;
   int head_idx = blockIdx.y;
+  int kv_head_idx = head_idx / group_size;
+
   int head_dim = blockDim.x;
   int head_dim_idx = threadIdx.x;
 
@@ -158,22 +156,13 @@ static __global__ void fused_attention_kernel(float *output, const float *qkv,
   int warp_idx = threadIdx.x / 32;
   int lane_idx = threadIdx.x % 32;
 
-  /**
-   * Calculate the offset in the qkv tensor for a given token, query/key/value
-   * type, head, and dimension.
-   *
-   * [ Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h ]
-   *
-   * `int qkv_idx`: 0 for query, 1 for key, 2 for value
-   */
-  auto calculate_qkv_offset = [&](int token_idx, int qkv_idx, int head_idx,
-                                  int head_dim_idx) {
-    return token_idx * (3 * hidden_size) + qkv_idx * hidden_size +
-           head_idx * head_dim + head_dim_idx;
+  auto calculate_offset = [&](int token_idx, int token_dim, int head_idx,
+                              int head_dim_idx) {
+    return token_idx * token_dim + head_idx * head_dim + head_dim_idx;
   };
 
-  int q_idx = calculate_qkv_offset(token_idx, 0, head_idx, head_dim_idx);
-  float q_val = qkv[q_idx];
+  int q_idx = calculate_offset(token_idx, hidden_size, head_idx, head_dim_idx);
+  float q_val = q[q_idx];
 
   float scale = 1.0f / sqrtf((float)head_dim);
 
@@ -196,8 +185,8 @@ static __global__ void fused_attention_kernel(float *output, const float *qkv,
      */
     float t_score = 0.0f;
     if (head_dim_idx < head_dim) {
-      int k_idx = calculate_qkv_offset(t, 1, head_idx, head_dim_idx);
-      float k_val = qkv[k_idx];
+      int k_idx = calculate_offset(t, kv_dim, kv_head_idx, head_dim_idx);
+      float k_val = k[k_idx];
       t_score = q_val * k_val;
     }
 
@@ -226,8 +215,8 @@ static __global__ void fused_attention_kernel(float *output, const float *qkv,
     float exp_score = expf(score - max);
     exp_sum = exp_sum * correction + exp_score;
 
-    int v_idx = calculate_qkv_offset(t, 2, head_idx, head_dim_idx);
-    float v_val = qkv[v_idx];
+    int v_idx = calculate_offset(t, kv_dim, kv_head_idx, head_dim_idx);
+    float v_val = v[v_idx];
     out_val = out_val * correction + exp_score * v_val;
   }
 
@@ -235,7 +224,8 @@ static __global__ void fused_attention_kernel(float *output, const float *qkv,
    * Save the attention output to global memory.
    * The output layout is [seq_len, hidden_size] (heads concatenated).
    */
-  int out_idx = token_idx * hidden_size + head_idx * head_dim + head_dim_idx;
+  int out_idx =
+      calculate_offset(token_idx, hidden_size, head_idx, head_dim_idx);
   output[out_idx] = out_val / exp_sum;
 }
 
@@ -255,35 +245,28 @@ static __global__ void fused_attention_kernel(float *output, const float *qkv,
  */
 
 #define QUERY_BLOCK_SIZE 32
-#define KEY_VALUE_BLOCK_SIZE 64
-#define HEAD_DIM 64
+#define KEY_VALUE_BLOCK_SIZE 16
+#define HEAD_DIM 128
 #define NUM_WARPS HEAD_DIM / 32
 
-static __global__ void flash_attention_warp_kernel(float *output,
-                                                   const float *qkv,
-                                                   int seq_len, int hidden_size,
-                                                   int head_dim) {
+static __global__ void
+flash_attention_warp_kernel(float *output, const float *q, const float *k,
+                            const float *v, int seq_len, int hidden_size,
+                            int kv_dim, int head_dim, int group_size) {
   /**
    * blockDim.x == 32
    * blockDim.y == QUERY_BLOCK_SIZE
    */
   int head_idx = blockIdx.x;
+  int kv_head_idx = head_idx / group_size;
+
   int query_block_idx = blockIdx.y;
   int row = query_block_idx * QUERY_BLOCK_SIZE + threadIdx.y;
   int tx = threadIdx.x;
 
-  /**
-   * Calculate the offset in the qkv tensor for a given token, query/key/value
-   * type, head, and dimension.
-   *
-   * [ Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h ]
-   *
-   * `int qkv_idx`: 0 for query, 1 for key, 2 for value
-   */
-  auto calculate_qkv_offset = [&](int token_idx, int qkv_idx, int head_idx,
-                                  int dim_idx) {
-    return token_idx * (3 * hidden_size) + qkv_idx * hidden_size +
-           head_idx * head_dim + dim_idx;
+  auto calculate_offset = [&](int token_idx, int token_dim, int head_idx,
+                              int head_dim_idx) {
+    return token_idx * token_dim + head_idx * head_dim + head_dim_idx;
   };
 
   /**
@@ -321,14 +304,14 @@ static __global__ void flash_attention_warp_kernel(float *output,
    * Load the query block scattered into registers. Each thread `tx` loads `tx`,
    * `tx + 32`, `tx + 64`, .. (NUM_WARPS) into registers.
    *
-   * In GPT2, NUM_WARPS = HEAD_DIM / 32 = 64 / 32 = 2 elements are processed by
-   * each thread.
+   * In LLaMA3_8B, NUM_WARPS = HEAD_DIM / 32 = 64 / 32 = 2 elements are
+   * processed by each thread.
    */
   if (row < seq_len) {
     for (int i = 0; i < NUM_WARPS; ++i) {
       int head_dim_idx = tx + i * 32;
-      int q_idx = calculate_qkv_offset(row, 0, head_idx, head_dim_idx);
-      query[i] = qkv[q_idx];
+      int q_idx = calculate_offset(row, hidden_size, head_idx, head_dim_idx);
+      query[i] = q[q_idx];
     }
   }
 
@@ -356,10 +339,10 @@ static __global__ void flash_attention_warp_kernel(float *output,
 
       int kv_idx = kv_block_offset + r;
       if (kv_idx < seq_len) {
-        int k_idx = calculate_qkv_offset(kv_idx, 1, head_idx, c);
-        int v_idx = calculate_qkv_offset(kv_idx, 2, head_idx, c);
-        key_block[r][c] = qkv[k_idx];
-        value_block[r][c] = qkv[v_idx];
+        int k_idx = calculate_offset(kv_idx, kv_dim, kv_head_idx, c);
+        int v_idx = calculate_offset(kv_idx, kv_dim, kv_head_idx, c);
+        key_block[r][c] = k[k_idx];
+        value_block[r][c] = v[v_idx];
       } else {
         key_block[r][c] = 0.0f;
         value_block[r][c] = 0.0f;
@@ -415,7 +398,7 @@ static __global__ void flash_attention_warp_kernel(float *output,
    * The output layout is [seq_len, hidden_size] (heads concatenated).
    */
   if (row < seq_len) {
-    int out_offset = row * hidden_size + head_idx * head_dim;
+    int out_offset = calculate_offset(row, hidden_size, head_idx, 0);
     for (int i = 0; i < NUM_WARPS; ++i) {
       int dim_idx = tx + i * 32;
       output[out_offset + dim_idx] = out_val[i] / exp_sum;
@@ -436,41 +419,78 @@ static __global__ void extract_last_token_kernel(float *out, const float *in,
 
 /**
  * ============================================================
- * ================ GPT2 Class Implementation =================
+ * ============== LLaMA3_8B Class Implementation ==============
  * ============================================================
  */
 
-GPT2::GPT2(const std::string &path) {
+LLaMA3_8B::LLaMA3_8B(const std::string &path) {
   weights = utils::load_data(path, "gpu");
 
-  // transpose "lm_head.weight" for matmul
-  Tensor out({hidden_size, vocab_size});
+  int64_t kv_dim = num_kv_heads * head_dim;
+
+  Tensor out;
+  for (int i = 0; i < num_layers; ++i) {
+    std::string prefix = "model.layers." + std::to_string(i) + ".";
+
+    out = Tensor({hidden_size, hidden_size});
+    operations::transpose(out, weights[prefix + "self_attn.q_proj.weight"]);
+    weights[prefix + "self_attn.q_proj.weight"] = std::move(out);
+
+    out = Tensor({hidden_size, kv_dim});
+    operations::transpose(out, weights[prefix + "self_attn.k_proj.weight"]);
+    weights[prefix + "self_attn.k_proj.weight"] = std::move(out);
+
+    out = Tensor({hidden_size, kv_dim});
+    operations::transpose(out, weights[prefix + "self_attn.v_proj.weight"]);
+    weights[prefix + "self_attn.v_proj.weight"] = std::move(out);
+
+    out = Tensor({hidden_size, hidden_size});
+    operations::transpose(out, weights[prefix + "self_attn.o_proj.weight"]);
+    weights[prefix + "self_attn.o_proj.weight"] = std::move(out);
+
+    out = Tensor({hidden_size, mlp_size});
+    operations::transpose(out, weights[prefix + "mlp.up_proj.weight"]);
+    weights[prefix + "mlp.up_proj.weight"] = std::move(out);
+
+    out = Tensor({hidden_size, mlp_size});
+    operations::transpose(out, weights[prefix + "mlp.gate_proj.weight"]);
+    weights[prefix + "mlp.gate_proj.weight"] = std::move(out);
+
+    out = Tensor({mlp_size, hidden_size});
+    operations::transpose(out, weights[prefix + "mlp.down_proj.weight"]);
+    weights[prefix + "mlp.down_proj.weight"] = std::move(out);
+  }
+
+  out = Tensor({hidden_size, vocab_size});
   operations::transpose(out, weights["lm_head.weight"]);
   weights["lm_head.weight"] = std::move(out);
 }
 
-void GPT2::attention_block(Tensor &x, int layer_idx) {
+void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
   // std::cout << "[CUDA][TRACE] Attention Layer " << layer_idx << std::endl;
-  std::string prefix = "transformer.h." + std::to_string(layer_idx) + ".";
+  std::string prefix = "model.layers." + std::to_string(layer_idx) + ".";
   int64_t seq_len = x.shape[0];
+
+  int64_t kv_dim = num_kv_heads * head_dim;
+  int group_size = num_heads / num_kv_heads;
 
   // Tensor x_norm = x;
   cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
              cudaMemcpyDeviceToDevice);
-  operations::layer_norm(x_norm, weights[prefix + "ln_1.weight"],
-                         weights[prefix + "ln_1.bias"]);
+  operations::rms_norm(x_norm, weights[prefix + "input_layernorm.weight"]);
 
   /**
-   * The tensor `qkv` with dimension (seq_len, 3 * hidden_size) is a
-   * concatenation of Q, K, and V matrices. Each Q, K, and V matrix is also a
-   * concatenation of the h heads.
-   *
-   * [ Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h ]
-   * where hidden_size = num_heads * head_dim
+   * LLaMA uses separate query, key, value projections (without bias)
    */
-  // Tensor qkv({seq_len, 3 * hidden_size});
-  operations::matmul(qkv, x_norm, weights[prefix + "attn.c_attn.weight"]);
-  operations::add_bias(qkv, weights[prefix + "attn.c_attn.bias"]);
+  // Tensor q({seq_len, hidden_size});
+  // Tensor k({seq_len, hidden_size});
+  // Tensor v({seq_len, hidden_size});
+  operations::matmul(q, x_norm, weights[prefix + "self_attn.q_proj.weight"]);
+  operations::matmul(k, x_norm, weights[prefix + "self_attn.k_proj.weight"]);
+  operations::matmul(v, x_norm, weights[prefix + "self_attn.v_proj.weight"]);
+
+  operations::rope(q, head_dim);
+  operations::rope(k, head_dim);
 
   // Tensor attention_value({seq_len, hidden_size});
 
@@ -497,12 +517,13 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
   //    * Extract Q, K, V heads from joint matrix `qkv` and compute attention
   //    * scores, coefficients, and values.
   //    */
+  //   int kv_head = h / group_size;
   //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
-  //       q_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 0);
+  //       q_head.d_data, q.d_data, seq_len, hidden_size, head_dim, h);
   //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
-  //       k_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 1);
+  //       k_head.d_data, k.d_data, seq_len, kv_dim, head_dim, kv_head);
   //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
-  //       v_head.d_data, qkv.d_data, seq_len, hidden_size, head_dim, h, 2);
+  //       v_head.d_data, v.d_data, seq_len, kv_dim, head_dim, kv_head);
 
   //   operations::transpose(k_head_transposed, k_head);
   //   operations::matmul(attention_head_scores, q_head,
@@ -528,11 +549,13 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
   // dim3 grid_dims(seq_len, num_heads);
   // naive_fused_attention_kernel<<<grid_dims, block_dims,
   //                                head_dim * sizeof(float)>>>(
-  //     attention_value.d_data, qkv.d_data, hidden_size, head_dim);
+  //     attention_value.d_data, q.d_data, k.d_data, v.d_data, hidden_size,
+  //     kv_dim, head_dim, group_size);
   // dim3 block_dims(head_dim);
   // dim3 grid_dims(seq_len, num_heads);
-  // fused_attention_kernel<<<grid_dims, block_dims>>>(attention_value.d_data,
-  //                                                   qkv.d_data, hidden_size);
+  // fused_attention_kernel<<<grid_dims, block_dims>>>(
+  //     attention_value.d_data, q.d_data, k.d_data, v.d_data, hidden_size,
+  //     kv_dim, group_size);
 
   /**
    * Implementation of the flash attention kernel.
@@ -540,47 +563,46 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
   dim3 block_dims(32, QUERY_BLOCK_SIZE);
   dim3 grid_dims(num_heads, 1 + (seq_len - 1) / QUERY_BLOCK_SIZE);
   flash_attention_warp_kernel<<<grid_dims, block_dims>>>(
-      attention_value.d_data, qkv.d_data, seq_len, hidden_size, head_dim);
+      attention_value.d_data, q.d_data, k.d_data, v.d_data, seq_len,
+      hidden_size, kv_dim, head_dim, group_size);
 
   // Tensor attention_output({seq_len, hidden_size});
   operations::matmul(attention_output, attention_value,
-                     weights[prefix + "attn.c_proj.weight"]);
-  operations::add_bias(attention_output, weights[prefix + "attn.c_proj.bias"]);
+                     weights[prefix + "self_attn.o_proj.weight"]);
 
   operations::add(x, attention_output);
 }
 
-void GPT2::mlp_block(Tensor &x, int layer_idx) {
+void LLaMA3_8B::mlp_block(Tensor &x, int layer_idx) {
   // std::cout << "[CUDA][TRACE] MLP Layer " << layer_idx << std::endl;
-  std::string prefix = "transformer.h." + std::to_string(layer_idx) + ".";
+  std::string prefix = "model.layers." + std::to_string(layer_idx) + ".";
   int64_t seq_len = x.shape[0];
 
   // Tensor x_norm = x;
   cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
              cudaMemcpyDeviceToDevice);
-  operations::layer_norm(x_norm, weights[prefix + "ln_2.weight"],
-                         weights[prefix + "ln_2.bias"]);
+  operations::rms_norm(x_norm,
+                       weights[prefix + "post_attention_layernorm.weight"]);
 
+  // Tensor gate({seq_len, mlp_size});
   // Tensor up({seq_len, mlp_size});
-  operations::matmul(up, x_norm, weights[prefix + "mlp.c_fc.weight"]);
-  operations::add_bias(up, weights[prefix + "mlp.c_fc.bias"]);
+  operations::matmul(gate, x_norm, weights[prefix + "mlp.gate_proj.weight"]);
+  operations::matmul(up, x_norm, weights[prefix + "mlp.up_proj.weight"]);
 
-  operations::gelu(up);
+  operations::silu(gate);
+  operations::multiply(gate, up);
 
-  // Tensor down({seq_len, hidden_size});
-  operations::matmul(down, up, weights[prefix + "mlp.c_proj.weight"]);
-  operations::add_bias(down, weights[prefix + "mlp.c_proj.bias"]);
+  // Tensor down({seq_len, hidden_size})
+  operations::matmul(down, gate, weights[prefix + "mlp.down_proj.weight"]);
 
   operations::add(x, down);
 }
 
-Tensor GPT2::forward(int *input_ids, int seq_len) {
+Tensor LLaMA3_8B::forward(int *input_ids, int seq_len) {
   // std::cout << "[CUDA][TRACE] Beginning forward pass" << std::endl;
   Tensor x({seq_len, hidden_size});
-  operations::embed(x, weights["transformer.wte.weight"], input_ids, seq_len,
+  operations::embed(x, weights["model.embed_tokens.weight"], input_ids, seq_len,
                     hidden_size);
-  operations::positional_encoding(x, weights["transformer.wpe.weight"], seq_len,
-                                  hidden_size);
 
   /**
    * Pre-allocate all temporary tensors.
@@ -589,10 +611,14 @@ Tensor GPT2::forward(int *input_ids, int seq_len) {
    * this implementation avoids runtime allocation and deallocation during the
    * forward pass.
    */
+  int64_t kv_dim = num_kv_heads * head_dim;
   x_norm = Tensor({seq_len, hidden_size});
-  qkv = Tensor({seq_len, 3 * hidden_size});
+  q = Tensor({seq_len, hidden_size});
+  k = Tensor({seq_len, kv_dim});
+  v = Tensor({seq_len, kv_dim});
   attention_value = Tensor({seq_len, hidden_size});
   attention_output = Tensor({seq_len, hidden_size});
+  gate = Tensor({seq_len, mlp_size});
   up = Tensor({seq_len, mlp_size});
   down = Tensor({seq_len, hidden_size});
 
@@ -601,8 +627,7 @@ Tensor GPT2::forward(int *input_ids, int seq_len) {
     mlp_block(x, i);
   }
 
-  operations::layer_norm(x, weights["transformer.ln_f.weight"],
-                         weights["transformer.ln_f.bias"]);
+  operations::rms_norm(x, weights["model.norm.weight"]);
 
   Tensor prediction_token({1, hidden_size});
   dim3 block_dims(256);

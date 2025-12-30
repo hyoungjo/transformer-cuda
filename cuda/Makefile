@@ -9,7 +9,7 @@ NVCCFLAGS := -arch=sm_86 -Xcompiler -Wall,-Wextra -O3
 
 INCLUDE := -Iinclude
 
-COMMON_SRCS := source/tensor.cu source/operations.cu source/utils.cu source/gpt2.cu
+COMMON_SRCS := source/tensor.cu source/operations.cu source/utils.cu source/gpt2.cu source/llama3_8b.cu
 COMMON_OBJS := $(COMMON_SRCS:.cu=.o)
 
 MAIN_SRC := source/main.cu

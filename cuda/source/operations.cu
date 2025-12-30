@@ -44,19 +44,63 @@ __inline__ __device__ float warp_reduce_sum(float val) {
  * Each thread handles a hidden dimension of a token.
  *
  * token_id = input_ids[token]
- * x[token, i] = wte[token_id, i] + wpe[token, i]
+ * x[token, i] = embeddings[token_id, i]
  *
  * The kernel implements a strided loop to support arbitrary hidden size.
  */
-__global__ void embed_kernel(float *x, const float *wte, const float *wpe,
+__global__ void embed_kernel(float *x, const float *embeddings,
                              const int *input_ids, int hidden_size) {
   int t = threadIdx.x;
   int token = blockIdx.x;
 
   for (int i = t; i < hidden_size; i += blockDim.x) {
     int token_id = input_ids[token];
-    x[token * hidden_size + i] =
-        wte[token_id * hidden_size + i] + wpe[token * hidden_size + i];
+    x[token * hidden_size + i] = embeddings[token_id * hidden_size + i];
+  }
+}
+
+__global__ void positional_encoding_kernel(float *x,
+                                           const float *positional_encoding,
+                                           int hidden_size) {
+  int t = threadIdx.x;
+  int token = blockIdx.x;
+
+  for (int i = t; i < hidden_size; i += blockDim.x) {
+    x[token * hidden_size + i] += positional_encoding[token * hidden_size + i];
+  }
+}
+
+/**
+ * Apply rotary positional embeddings (RoPE) to query and key vectors.
+ * Each thread handles a pair of dimensions (i, i + head_dim / 2).
+ *
+ * theta_i = base ^ (-2 * (i % d) / d)
+ *
+ * Refer to the original paper for more details: Su et al., "RoFormer: Enhanced
+ * transformer with rotary position embedding", arXiv preprint arXiv:2104.09864.
+ */
+__global__ void rope_kernel(float *x, int token_dim, int head_dim) {
+  int t = threadIdx.x;
+  int token = blockIdx.x;
+
+  const float base = 500000.0f;
+
+  int half_dim = head_dim / 2;
+  for (int i = t; i < token_dim / 2; i += blockDim.x) {
+    int head_idx = i / half_dim;
+    int pair_idx = i % half_dim;
+
+    float theta_i = 1.0f / powf(base, (float)(pair_idx * 2) / head_dim);
+    float angle = token * theta_i;
+    float cos_val = cosf(angle);
+    float sin_val = sinf(angle);
+
+    int idx1 = head_idx * head_dim + pair_idx;
+    int idx2 = head_idx * head_dim + pair_idx + half_dim;
+    float x1 = x[token * token_dim + idx1];
+    float x2 = x[token * token_dim + idx2];
+    x[token * token_dim + idx1] = x1 * cos_val - x2 * sin_val;
+    x[token * token_dim + idx2] = x1 * sin_val + x2 * cos_val;
   }
 }
 
@@ -322,6 +366,17 @@ __global__ void add_bias_kernel(float *x, const float *bias, int hidden_size,
 }
 
 /**
+ * Multiply y to x element-wise.
+ * Each thread handles one element.
+ */
+__global__ void multiply_kernel(float *x, const float *y, int n) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < n) {
+    x[i] *= y[i];
+  }
+}
+
+/**
  * Apply GELU activation function to each element.
  * Each thread handles one element.
  *
@@ -336,6 +391,20 @@ __global__ void gelu_kernel(float *x, int64_t n) {
     const float c2 = 0.044715f;
     float cube = val * val * val;
     x[i] = 0.5f * val * (1.0f + tanhf(c1 * (val + c2 * cube)));
+  }
+}
+
+/**
+ * Apply SiLU (Swish) activation function to each element.
+ * Each thread handles one element.
+ *
+ * x / (1 + exp(-x))
+ */
+__global__ void silu_kernel(float *x, int64_t n) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < n) {
+    float val = x[i];
+    x[i] = val / (1.0f + expf(-val));
   }
 }
 
@@ -480,6 +549,93 @@ __global__ void layer_norm_kernel(float *x, const float *weight,
 }
 
 /**
+ * Apply root-mean-square (RMS) normalization to each sequence element.
+ * Each block processes a row (sequence element).
+ *
+ * In the naive version, which is implemented without any shared memory use,
+ * each block is launched with a single thread, which handles the entire row
+ * sequentially.
+ *
+ * The commented code is a typical reduction algorithm from the lecture slides,
+ * implemented with sequential addressing (memory coalesced) and loop unrolling
+ * (warp reduce).
+ *
+ * This kernel is implemented with the following optimizations:
+ *  1. A strided loop to support arbitrary data length (over max blockDim.x,
+ *     which is 1024). Each thread first aggregates elements t, t + 1024, ..
+ *  2. Each warp is reduced to a single value and stored in shared memory.
+ *  3. The thread 0 of each block aggregates the reduction result of each warp.
+ */
+
+__global__ void naive_rms_norm_kernel(float *x, const float *weight,
+                                      int hidden_size, float eps) {
+  int row = blockIdx.x;
+  float *data = x + row * hidden_size;
+
+  float sum_of_squares = 0.0f;
+  for (int i = 0; i < hidden_size; ++i)
+    sum_of_squares += data[i] * data[i];
+  float inv_rms = rsqrtf(sum_of_squares / hidden_size + eps);
+
+  for (int i = 0; i < hidden_size; ++i) {
+    data[i] = data[i] * inv_rms * weight[i];
+  }
+}
+
+__global__ void rms_norm_kernel(float *x, const float *weight, int hidden_size,
+                                float eps) {
+  extern __shared__ float reduction[];
+
+  int t = threadIdx.x;
+  int row = blockIdx.x;
+  float *data = x + row * hidden_size;
+
+  int warp_idx = threadIdx.x / 32;
+  int lane_idx = threadIdx.x % 32;
+
+  /**
+   * Compute the sum of squares (then variance) of the row with strided loop and
+   * warp reduce.
+   */
+  // float t_sum_of_squares = 0.0f;
+  // for (int i = t; i < hidden_size; i += blockDim.x) {
+  //   t_sum_of_squares += data[i] * data[i];
+  // }
+  // reduction[t] = t_sum_of_squares;
+
+  // for (int stride = blockDim.x / 2; stride >= 32; stride /= 2) {
+  //   __syncthreads();
+  //   if (t < stride)
+  //     reduction[t] += reduction[t + stride];
+  // }
+  // if (t < 32)
+  //   reduction[t] = warp_reduce_sum(reduction[t]);
+  // __syncthreads();
+
+  float t_sum_of_squares = 0.0f;
+  for (int i = t; i < hidden_size; i += blockDim.x) {
+    t_sum_of_squares += data[i] * data[i];
+  }
+
+  float warp_sum_of_squares = warp_reduce_sum(t_sum_of_squares);
+  if (lane_idx == 0)
+    reduction[warp_idx] = warp_sum_of_squares;
+  __syncthreads();
+
+  if (t == 0) {
+    for (int w = 1; w < blockDim.x / 32; ++w)
+      reduction[0] += reduction[w];
+  }
+  __syncthreads();
+
+  float inv_rms = rsqrtf(reduction[0] / hidden_size + eps);
+
+  for (int i = t; i < hidden_size; i += blockDim.x) {
+    data[i] = data[i] * inv_rms * weight[i];
+  }
+}
+
+/**
  * Apply softmax over the last dimension.
  * Each block processes a flattened row. This is called in attention layers and
  * in the decoding process (calculate probabilities).
@@ -615,14 +771,35 @@ __global__ void softmax_kernel(float *x, int dim_size, int rows) {
  * ============================================================
  */
 
-void embed(Tensor &x, const Tensor &wte, const Tensor &wpe,
-           const int *input_ids, int seq_len, int hidden_size) {
+void embed(Tensor &x, const Tensor &embeddings, const int *input_ids,
+           int seq_len, int hidden_size) {
   // std::cout << "[CUDA][TRACE] Operations embed()" << std::endl;
   int block_size = 1024;
   dim3 block_dims(block_size);
   dim3 grid_dims(seq_len);
-  embed_kernel<<<grid_dims, block_dims>>>(x.d_data, wte.d_data, wpe.d_data,
+  embed_kernel<<<grid_dims, block_dims>>>(x.d_data, embeddings.d_data,
                                           input_ids, hidden_size);
+}
+
+void positional_encoding(Tensor &x, const Tensor &positional_encoding,
+                         int seq_len, int hidden_size) {
+  // std::cout << "[CUDA][TRACE] Operations positional_encoding()" << std::endl;
+  int block_size = 1024;
+  dim3 block_dims(block_size);
+  dim3 grid_dims(seq_len);
+  positional_encoding_kernel<<<grid_dims, block_dims>>>(
+      x.d_data, positional_encoding.d_data, hidden_size);
+}
+
+void rope(Tensor &x, int head_dim) {
+  // std::cout << "[CUDA][TRACE] Operations rope()" << std::endl;
+  int seq_len = x.shape[0];
+  int token_dim = x.shape[1];
+
+  int block_size = 1024;
+  dim3 block_dims(block_size);
+  dim3 grid_dims(seq_len);
+  rope_kernel<<<grid_dims, block_dims>>>(x.d_data, token_dim, head_dim);
 }
 
 void transpose(Tensor &out, const Tensor &x) {
@@ -680,6 +857,16 @@ void add_bias(Tensor &x, const Tensor &bias) {
                                              n);
 }
 
+void multiply(Tensor &x, const Tensor &y) {
+  // std::cout << "[CUDA][TRACE] Operations multiply()" << std::endl;
+  int n = x.numel();
+
+  int block_size = 1024;
+  dim3 block_dims(block_size);
+  dim3 grid_dims(1 + (n - 1) / block_size);
+  multiply_kernel<<<grid_dims, block_dims>>>(x.d_data, y.d_data, n);
+}
+
 void gelu(Tensor &x) {
   // std::cout << "[CUDA][TRACE] Operations gelu()" << std::endl;
   int64_t n = x.numel();
@@ -688,6 +875,16 @@ void gelu(Tensor &x) {
   dim3 block_dims(block_size);
   dim3 grid_dims(1 + (n - 1) / block_size);
   gelu_kernel<<<grid_dims, block_dims>>>(x.d_data, n);
+}
+
+void silu(Tensor &x) {
+  // std::cout << "[CUDA][TRACE] Operations silu()" << std::endl;
+  int64_t n = x.numel();
+
+  int block_size = 1024;
+  dim3 block_dims(block_size);
+  dim3 grid_dims(1 + (n - 1) / block_size);
+  silu_kernel<<<grid_dims, block_dims>>>(x.d_data, n);
 }
 
 /**
@@ -720,6 +917,23 @@ void layer_norm(Tensor &x, const Tensor &weight, const Tensor &bias,
   int num_warps = block_dims.x / 32;
   layer_norm_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
       x.d_data, weight.d_data, bias.d_data, hidden_size, eps);
+}
+
+void rms_norm(Tensor &x, const Tensor &weight, float eps) {
+  // std::cout << "[CUDA][TRACE] Operations rms_norm()" << std::endl;
+  int seq_len = x.shape[0];
+  int hidden_size = x.shape[1];
+
+  // dim3 block_dims(1);
+  // dim3 grid_dims(seq_len);
+  // naive_rms_norm_kernel<<<grid_dims, block_dims>>>(x.d_data, weight.d_data,
+  //                                                  hidden_size, eps);
+
+  dim3 block_dims(256);
+  dim3 grid_dims(seq_len);
+  int num_warps = block_dims.x / 32;
+  rms_norm_kernel<<<grid_dims, block_dims, num_warps * sizeof(float)>>>(
+      x.d_data, weight.d_data, hidden_size, eps);
 }
 
 void softmax(Tensor &x) {
