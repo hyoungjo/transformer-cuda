@@ -13,6 +13,8 @@ private:
   int64_t num_kv_heads = 8; // Grouped Query Attention (GQA)
   int64_t head_dim = 128;   // hidden_size / num_heads
   int64_t hidden_size = 4096;
+  int64_t mlp_size = 14336;
+  int64_t vocab_size = 128256;
 
   void attention_block(Tensor &x, int layer_idx);
   void mlp_block(Tensor &x, int layer_idx);

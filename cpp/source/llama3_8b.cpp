@@ -14,6 +14,7 @@ LLaMA3_8B::LLaMA3_8B(const std::string &path) {
 void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
   // std::cout << "[CPP][TRACE] Attention Layer " << layer_idx << std::endl;
   std::string prefix = "model.layers." + std::to_string(layer_idx) + ".";
+  int64_t seq_len = x.shape[0];
 
   Tensor x_norm = x;
   operations::rms_norm(x_norm, weights[prefix + "input_layernorm.weight"]);
@@ -21,7 +22,9 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
   /**
    * LLaMA uses separate query, key, value projections (without bias)
    */
-  Tensor q, k, v;
+  Tensor q({seq_len, hidden_size});
+  Tensor k({seq_len, hidden_size});
+  Tensor v({seq_len, hidden_size});
   operations::matmul(q, x_norm, weights[prefix + "self_attn.q_proj.weight"],
                      true);
   operations::matmul(k, x_norm, weights[prefix + "self_attn.k_proj.weight"],
@@ -35,7 +38,6 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
   /**
    * Grouped Query Attention (GQA)
    */
-  int64_t seq_len = x.shape[0];
   Tensor attention_value({seq_len, hidden_size});
 
   int64_t group_size = num_heads / num_kv_heads;
@@ -81,7 +83,7 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
     }
   }
 
-  Tensor attention_output;
+  Tensor attention_output({seq_len, hidden_size});
   operations::matmul(attention_output, attention_value,
                      weights[prefix + "self_attn.o_proj.weight"], true);
 
@@ -91,12 +93,14 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
 void LLaMA3_8B::mlp_block(Tensor &x, int layer_idx) {
   // std::cout << "[CPP][TRACE] MLP Layer " << layer_idx << std::endl;
   std::string prefix = "model.layers." + std::to_string(layer_idx) + ".";
+  int64_t seq_len = x.shape[0];
 
-  Tensor x_norm = x;
+  Tensor x_norm({seq_len, hidden_size});
   operations::rms_norm(x_norm,
                        weights[prefix + "post_attention_layernorm.weight"]);
 
-  Tensor gate, up; // gate decides which 'keys' to use
+  Tensor gate({seq_len, mlp_size});
+  Tensor up({seq_len, mlp_size});
   operations::matmul(gate, x_norm, weights[prefix + "mlp.gate_proj.weight"],
                      true);
   operations::matmul(up, x_norm, weights[prefix + "mlp.up_proj.weight"], true);
@@ -107,7 +111,7 @@ void LLaMA3_8B::mlp_block(Tensor &x, int layer_idx) {
     gate(i) *= up(i); // element-wise, breaks linearity
   }
 
-  Tensor down;
+  Tensor down({seq_len, hidden_size});
   operations::matmul(down, gate, weights[prefix + "mlp.down_proj.weight"],
                      true);
 
@@ -145,7 +149,7 @@ Tensor LLaMA3_8B::forward(const std::vector<int> &input_ids) {
   for (int i = 0; i < hidden_size; ++i)
     prediction_token(i) = x(seq_len - 1, i);
 
-  Tensor logits;
+  Tensor logits({1, vocab_size});
   operations::matmul(logits, prediction_token, weights["lm_head.weight"], true);
 
   return logits;

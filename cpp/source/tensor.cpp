@@ -4,18 +4,16 @@
 #include <vector>
 
 Tensor::Tensor() {}
-Tensor::Tensor(const std::vector<int64_t> &shape) { resize(shape); }
+Tensor::Tensor(const std::vector<int64_t> &shape) {
+  this->shape = shape;
+  data.resize(numel());
+}
 
 int64_t Tensor::numel() const {
   if (shape.empty())
     return 0;
   return std::accumulate(shape.begin(), shape.end(), 1,
                          std::multiplies<int64_t>());
-}
-
-void Tensor::resize(const std::vector<int64_t> &shape) {
-  this->shape = shape;
-  data.resize(numel());
 }
 
 /**

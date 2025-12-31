@@ -12,16 +12,16 @@ GPT2::GPT2(const std::string &path) { weights = utils::load_data(path); }
 void GPT2::attention_block(Tensor &x, int layer_idx) {
   // std::cout << "[CPP][TRACE] Attention Layer " << layer_idx << std::endl;
   std::string prefix = "transformer.h." + std::to_string(layer_idx) + ".";
+  int64_t seq_len = x.shape[0];
 
   Tensor x_norm = x;
   operations::layer_norm(x_norm, weights[prefix + "ln_1.weight"],
                          weights[prefix + "ln_1.bias"]);
 
-  Tensor qkv; // seq_len x (3 * hidden_size)
+  Tensor qkv({seq_len, 3 * hidden_size});
   operations::matmul(qkv, x_norm, weights[prefix + "attn.c_attn.weight"]);
   operations::add_bias(qkv, weights[prefix + "attn.c_attn.bias"]);
 
-  int64_t seq_len = x.shape[0];
   Tensor attention_value({seq_len, hidden_size});
 
   for (int64_t h = 0; h < num_heads; ++h) {
@@ -70,7 +70,7 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
     }
   }
 
-  Tensor attention_output;
+  Tensor attention_output({seq_len, hidden_size});
   operations::matmul(attention_output, attention_value,
                      weights[prefix + "attn.c_proj.weight"]);
   operations::add_bias(attention_output, weights[prefix + "attn.c_proj.bias"]);
@@ -81,18 +81,19 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
 void GPT2::mlp_block(Tensor &x, int layer_idx) {
   // std::cout << "[CPP][TRACE] MLP Layer " << layer_idx << std::endl;
   std::string prefix = "transformer.h." + std::to_string(layer_idx) + ".";
+  int64_t seq_len = x.shape[0];
 
   Tensor x_norm = x;
   operations::layer_norm(x_norm, weights[prefix + "ln_2.weight"],
                          weights[prefix + "ln_2.bias"]);
 
-  Tensor up;
+  Tensor up({seq_len, mlp_size});
   operations::matmul(up, x_norm, weights[prefix + "mlp.c_fc.weight"]);
   operations::add_bias(up, weights[prefix + "mlp.c_fc.bias"]);
 
   operations::gelu(up);
 
-  Tensor down;
+  Tensor down({seq_len, hidden_size});
   operations::matmul(down, up, weights[prefix + "mlp.c_proj.weight"]);
   operations::add_bias(down, weights[prefix + "mlp.c_proj.bias"]);
 
@@ -137,7 +138,7 @@ Tensor GPT2::forward(const std::vector<int> &input_ids) {
   for (int i = 0; i < hidden_size; ++i)
     prediction_token(i) = x(seq_len - 1, i);
 
-  Tensor logits;
+  Tensor logits({1, vocab_size});
   operations::matmul(logits, prediction_token, weights["lm_head.weight"], true);
 
   return logits;

@@ -87,10 +87,6 @@ void matmul(Tensor &out, const Tensor &A, const Tensor &B, bool transpose_b) {
     exit(1);
   }
 
-  if (out.data.empty() || out.shape[0] != M || out.shape[1] != N) {
-    out.resize({M, N}); // allocate space
-  }
-
   for (int64_t m = 0; m < M; ++m) {
     for (int64_t n = 0; n < N; ++n) {
       float val = 0.0f;
@@ -206,11 +202,8 @@ void rms_norm(Tensor &x, const Tensor &weight, float eps) {
  */
 void softmax(Tensor &x) {
   // std::cout << "[CPP][TRACE] Softmax " << std::endl;
-  std::vector<int64_t> shape = x.shape;
-  int64_t last_dim = shape.back();
+  int64_t last_dim = x.shape.back();
   int64_t flattened_rows = x.numel() / last_dim;
-
-  x.resize({flattened_rows, last_dim});
 
   for (int64_t r = 0; r < flattened_rows; ++r) {
     // max used for numerical stability
@@ -229,8 +222,6 @@ void softmax(Tensor &x) {
       x(r, i) /= sum;
     }
   }
-
-  x.resize(shape);
 }
 
 } // namespace operations

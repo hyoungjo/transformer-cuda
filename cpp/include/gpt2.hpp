@@ -12,6 +12,8 @@ private:
   int64_t num_heads = 12;
   int64_t head_dim = 64; // hidden_size / num_heads
   int64_t hidden_size = 768;
+  int64_t mlp_size = 3072;
+  int64_t vocab_size = 50257;
 
   void attention_block(Tensor &x, int layer_idx);
   void mlp_block(Tensor &x, int layer_idx);

@@ -12,7 +12,6 @@ public:
   Tensor(const std::vector<int64_t> &shape);
 
   int64_t numel() const;
-  void resize(const std::vector<int64_t> &shape);
 
   /**
    * Iterators to support range-based for loops and algorithms.
