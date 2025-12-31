@@ -1,8 +1,11 @@
 #include "tensor.hpp"
+#include <algorithm>
 #include <cstdint>
 #include <cuda_runtime.h>
 #include <iostream>
 #include <numeric>
+#include <string>
+#include <vector>
 
 /**
  * ============================================================

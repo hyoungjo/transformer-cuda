@@ -2,7 +2,9 @@
 #include "operations.hpp"
 #include "utils.hpp"
 #include <cmath>
+#include <cstdint>
 #include <cuda_runtime.h>
+#include <string>
 
 /**
  * ============================================================

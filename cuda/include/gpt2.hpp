@@ -2,6 +2,8 @@
 
 #include "model.hpp"
 #include "tensor.hpp"
+#include <cstdint>
+#include <string>
 
 class GPT2 : public Model {
 private:

@@ -3,6 +3,7 @@
 #include "tensor.hpp"
 #include "utils.hpp"
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <string>

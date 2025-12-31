@@ -2,6 +2,7 @@
 
 #include "model.hpp"
 #include "tensor.hpp"
+#include <cstdint>
 #include <string>
 
 class LLaMA3_8B : public Model {

@@ -1,5 +1,7 @@
 #include "tensor.hpp"
+#include <cstdint>
 #include <numeric>
+#include <vector>
 
 Tensor::Tensor() {}
 Tensor::Tensor(const std::vector<int64_t> &shape) { resize(shape); }

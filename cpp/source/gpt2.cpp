@@ -2,7 +2,10 @@
 #include "operations.hpp"
 #include "utils.hpp"
 #include <cmath>
+#include <cstdint>
 #include <iostream>
+#include <string>
+#include <vector>
 
 GPT2::GPT2(const std::string &path) { weights = utils::load_data(path); }
 

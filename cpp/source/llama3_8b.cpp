@@ -2,7 +2,10 @@
 #include "operations.hpp"
 #include "utils.hpp"
 #include <cmath>
+#include <cstdint>
 #include <iostream>
+#include <string>
+#include <vector>
 
 LLaMA3_8B::LLaMA3_8B(const std::string &path) {
   weights = utils::load_data(path);
