@@ -5,7 +5,8 @@
 NVCC := $(HOME)/miniconda3/envs/cuda/bin/nvcc
 
 # -Xcompiler takes the next parameter to the CPU compiler
-NVCCFLAGS := -arch=sm_86 -Xcompiler -Wall,-Wextra -O3
+# -diag-suppress 177 suppresses unused declaration warnings
+NVCCFLAGS := -arch=sm_86 -Xcompiler -Wall,-Wextra -O3 -diag-suppress 177
 
 INCLUDE := -Iinclude
 
