@@ -446,8 +446,8 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
    * LLaMA uses separate query, key, value projections (without bias)
    */
   // Tensor q({seq_len, hidden_size});
-  // Tensor k({seq_len, hidden_size});
-  // Tensor v({seq_len, hidden_size});
+  // Tensor k({seq_len, kv_dim});
+  // Tensor v({seq_len, kv_dim});
   operations::matmul(q, x_norm, weights[prefix + "self_attn.q_proj.weight"],
                      true);
   operations::matmul(k, x_norm, weights[prefix + "self_attn.k_proj.weight"],
