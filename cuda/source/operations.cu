@@ -165,14 +165,15 @@ __global__ void transpose_kernel(float *out, const float *in, int M, int N) {
 
 __global__ void naive_matrix_multiplication_kernel(float *out, const float *A,
                                                    const float *B, int M, int N,
-                                                   int K) {
+                                                   int K, bool transpose_b) {
   int row = blockIdx.y * blockDim.y + threadIdx.y;
   int col = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (row < M && col < N) {
     float sum = 0.0f;
     for (int k = 0; k < K; ++k) {
-      sum += A[row * K + k] * B[k * N + col];
+      float b_val = transpose_b ? B[col * K + k] : B[k * N + col];
+      sum += A[row * K + k] * b_val;
     }
     out[row * N + col] = sum;
   }
@@ -180,7 +181,7 @@ __global__ void naive_matrix_multiplication_kernel(float *out, const float *A,
 
 __global__ void matrix_multiplication_kernel(float *out, const float *A,
                                              const float *B, int M, int N,
-                                             int K) {
+                                             int K, bool transpose_b) {
   __shared__ float As[TILE_SIZE][TILE_SIZE];
   __shared__ float Bs[TILE_SIZE][TILE_SIZE];
 
@@ -218,12 +219,29 @@ __global__ void matrix_multiplication_kernel(float *out, const float *A,
       As[ty][tx] = 0.0f;
     }
 
-    int B_row = tile * TILE_SIZE + ty;
-    int B_col = col;
-    if (B_row < K && B_col < N) {
-      Bs[ty][tx] = B[B_row * N + B_col];
+    if (transpose_b) {
+      /**
+       * int B_row = bx * TILE_SIZE + tx;
+       * int B_col = tile * TILE_SIZE + ty;
+       *
+       * To support coalesced global memory access, `tx` and `ty` are switched.
+       * This is possible since the tiles have the same width and height.
+       */
+      int B_row = bx * TILE_SIZE + ty;
+      int B_col = tile * TILE_SIZE + tx;
+      if (B_row < N && B_col < K) {
+        Bs[tx][ty] = B[B_row * K + B_col];
+      } else {
+        Bs[tx][ty] = 0.0f;
+      }
     } else {
-      Bs[ty][tx] = 0.0f;
+      int B_row = tile * TILE_SIZE + ty;
+      int B_col = col;
+      if (B_row < K && B_col < N) {
+        Bs[ty][tx] = B[B_row * N + B_col];
+      } else {
+        Bs[ty][tx] = 0.0f;
+      }
     }
     __syncthreads();
 
@@ -251,7 +269,8 @@ __global__ void matrix_multiplication_kernel(float *out, const float *A,
 __global__ void tensor_core_matrix_multiplication_kernel(float *out,
                                                          const float *A,
                                                          const float *B, int M,
-                                                         int N, int K) {
+                                                         int N, int K,
+                                                         bool transpose_b) {
   int t = threadIdx.x;
   int block_row_offset = blockIdx.y * TILE_SIZE;
   int block_col_offset = blockIdx.x * TILE_SIZE;
@@ -295,11 +314,26 @@ __global__ void tensor_core_matrix_multiplication_kernel(float *out,
       gr = block_row_offset + r;
       gc = k + c;
       As[r][c] = (gr < M && gc < K) ? A[gr * K + gc] : 0.0f;
-      r = i / TILE_SIZE;
-      c = i % TILE_SIZE;
-      gr = k + r;
-      gc = block_col_offset + c;
-      Bs[r][c] = (gr < K && gc < N) ? B[gr * N + gc] : 0.0f;
+      if (transpose_b) {
+        /**
+         * To fill Bs with SUB_TILE_SIZE x TILE_SIZE, the tile loaded from
+         * global memory matrix B will be TILE_SIZE x SUB_TILE_SIZE.
+         *
+         * To support coalesced global memory access, the threads are allocated
+         * column-wise for shared memory and row-wise for global memory.
+         */
+        c = i / SUB_TILE_SIZE;
+        r = i % SUB_TILE_SIZE;
+        gr = block_col_offset + c;
+        gc = k + r;
+        Bs[r][c] = (gr < N && gc < K) ? B[gr * K + gc] : 0.0f;
+      } else {
+        r = i / TILE_SIZE;
+        c = i % TILE_SIZE;
+        gr = k + r;
+        gc = block_col_offset + c;
+        Bs[r][c] = (gr < K && gc < N) ? B[gr * N + gc] : 0.0f;
+      }
     }
     __syncthreads();
 
@@ -815,24 +849,23 @@ void transpose(Tensor &out, const Tensor &x) {
   transpose_kernel<<<grid_dims, block_dims>>>(out.d_data, x.d_data, rows, cols);
 }
 
-void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
+void matmul(Tensor &out, const Tensor &A, const Tensor &B, bool transpose_b) {
   // std::cout << "[CUDA][TRACE] Operations matmul()" << std::endl;
   int64_t M = A.shape[0];
   int64_t K = A.shape[1];
-  int64_t N = B.shape[1];
+  int64_t N = transpose_b ? B.shape[0] : B.shape[1];
 
   // dim3 block_dims(TILE_SIZE, TILE_SIZE);
   // dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
   // naive_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
-  //     out.d_data, A.d_data, B.d_data, M, N, K);
-  // matrix_multiplication_kernel<<<grid_dims, block_dims>>>(out.d_data,
-  // A.d_data,
-  //                                                         B.d_data, M, N, K);
+  //     out.d_data, A.d_data, B.d_data, M, N, K, transpose_b);
+  // matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
+  //     out.d_data, A.d_data, B.d_data, M, N, K, transpose_b);
 
   dim3 block_dims(128); // 32 x 4 warps
   dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
   tensor_core_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
-      out.d_data, A.d_data, B.d_data, M, N, K);
+      out.d_data, A.d_data, B.d_data, M, N, K, transpose_b);
 }
 
 void add(Tensor &x, const Tensor &y) {

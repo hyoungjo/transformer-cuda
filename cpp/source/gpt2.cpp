@@ -4,12 +4,7 @@
 #include <cmath>
 #include <iostream>
 
-GPT2::GPT2(const std::string &path) {
-  weights = utils::load_data(path);
-
-  // transpose "lm_head.weight" for matmul
-  operations::transpose(weights["lm_head.weight"]);
-}
+GPT2::GPT2(const std::string &path) { weights = utils::load_data(path); }
 
 void GPT2::attention_block(Tensor &x, int layer_idx) {
   // std::cout << "[CPP][TRACE] Attention Layer " << layer_idx << std::endl;
@@ -140,7 +135,7 @@ Tensor GPT2::forward(const std::vector<int> &input_ids) {
     prediction_token(i) = x(seq_len - 1, i);
 
   Tensor logits;
-  operations::matmul(logits, prediction_token, weights["lm_head.weight"]);
+  operations::matmul(logits, prediction_token, weights["lm_head.weight"], true);
 
   return logits;
 }

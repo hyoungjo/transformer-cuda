@@ -425,45 +425,6 @@ static __global__ void extract_last_token_kernel(float *out, const float *in,
 
 LLaMA3_8B::LLaMA3_8B(const std::string &path) {
   weights = utils::load_data(path, "gpu");
-
-  int64_t kv_dim = num_kv_heads * head_dim;
-
-  Tensor out;
-  for (int i = 0; i < num_layers; ++i) {
-    std::string prefix = "model.layers." + std::to_string(i) + ".";
-
-    out = Tensor({hidden_size, hidden_size});
-    operations::transpose(out, weights[prefix + "self_attn.q_proj.weight"]);
-    weights[prefix + "self_attn.q_proj.weight"] = std::move(out);
-
-    out = Tensor({hidden_size, kv_dim});
-    operations::transpose(out, weights[prefix + "self_attn.k_proj.weight"]);
-    weights[prefix + "self_attn.k_proj.weight"] = std::move(out);
-
-    out = Tensor({hidden_size, kv_dim});
-    operations::transpose(out, weights[prefix + "self_attn.v_proj.weight"]);
-    weights[prefix + "self_attn.v_proj.weight"] = std::move(out);
-
-    out = Tensor({hidden_size, hidden_size});
-    operations::transpose(out, weights[prefix + "self_attn.o_proj.weight"]);
-    weights[prefix + "self_attn.o_proj.weight"] = std::move(out);
-
-    out = Tensor({hidden_size, mlp_size});
-    operations::transpose(out, weights[prefix + "mlp.up_proj.weight"]);
-    weights[prefix + "mlp.up_proj.weight"] = std::move(out);
-
-    out = Tensor({hidden_size, mlp_size});
-    operations::transpose(out, weights[prefix + "mlp.gate_proj.weight"]);
-    weights[prefix + "mlp.gate_proj.weight"] = std::move(out);
-
-    out = Tensor({mlp_size, hidden_size});
-    operations::transpose(out, weights[prefix + "mlp.down_proj.weight"]);
-    weights[prefix + "mlp.down_proj.weight"] = std::move(out);
-  }
-
-  out = Tensor({hidden_size, vocab_size});
-  operations::transpose(out, weights["lm_head.weight"]);
-  weights["lm_head.weight"] = std::move(out);
 }
 
 void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
@@ -485,9 +446,12 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
   // Tensor q({seq_len, hidden_size});
   // Tensor k({seq_len, hidden_size});
   // Tensor v({seq_len, hidden_size});
-  operations::matmul(q, x_norm, weights[prefix + "self_attn.q_proj.weight"]);
-  operations::matmul(k, x_norm, weights[prefix + "self_attn.k_proj.weight"]);
-  operations::matmul(v, x_norm, weights[prefix + "self_attn.v_proj.weight"]);
+  operations::matmul(q, x_norm, weights[prefix + "self_attn.q_proj.weight"],
+                     true);
+  operations::matmul(k, x_norm, weights[prefix + "self_attn.k_proj.weight"],
+                     true);
+  operations::matmul(v, x_norm, weights[prefix + "self_attn.v_proj.weight"],
+                     true);
 
   operations::rope(q, head_dim);
   operations::rope(k, head_dim);
@@ -568,7 +532,7 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
 
   // Tensor attention_output({seq_len, hidden_size});
   operations::matmul(attention_output, attention_value,
-                     weights[prefix + "self_attn.o_proj.weight"]);
+                     weights[prefix + "self_attn.o_proj.weight"], true);
 
   operations::add(x, attention_output);
 }
@@ -586,14 +550,16 @@ void LLaMA3_8B::mlp_block(Tensor &x, int layer_idx) {
 
   // Tensor gate({seq_len, mlp_size});
   // Tensor up({seq_len, mlp_size});
-  operations::matmul(gate, x_norm, weights[prefix + "mlp.gate_proj.weight"]);
-  operations::matmul(up, x_norm, weights[prefix + "mlp.up_proj.weight"]);
+  operations::matmul(gate, x_norm, weights[prefix + "mlp.gate_proj.weight"],
+                     true);
+  operations::matmul(up, x_norm, weights[prefix + "mlp.up_proj.weight"], true);
 
   operations::silu(gate);
   operations::multiply(gate, up);
 
   // Tensor down({seq_len, hidden_size})
-  operations::matmul(down, gate, weights[prefix + "mlp.down_proj.weight"]);
+  operations::matmul(down, gate, weights[prefix + "mlp.down_proj.weight"],
+                     true);
 
   operations::add(x, down);
 }
@@ -636,7 +602,7 @@ Tensor LLaMA3_8B::forward(int *input_ids, int seq_len) {
       prediction_token.d_data, x.d_data, seq_len, hidden_size);
 
   Tensor logits({1, vocab_size});
-  operations::matmul(logits, prediction_token, weights["lm_head.weight"]);
+  operations::matmul(logits, prediction_token, weights["lm_head.weight"], true);
 
   return logits;
 }

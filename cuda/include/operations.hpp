@@ -21,7 +21,8 @@ void positional_encoding(Tensor &x, const Tensor &positional_encoding,
 void rope(Tensor &x, int head_dim);
 
 void transpose(Tensor &out, const Tensor &x);
-void matmul(Tensor &out, const Tensor &A, const Tensor &B);
+void matmul(Tensor &out, const Tensor &A, const Tensor &B,
+            bool transpose_b = false);
 
 void add(Tensor &x, const Tensor &y);
 void add_bias(Tensor &x, const Tensor &bias);

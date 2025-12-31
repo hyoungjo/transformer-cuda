@@ -74,17 +74,17 @@ void transpose(Tensor &x) {
   x = std::move(out); // move assignment
 }
 
-void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
+void matmul(Tensor &out, const Tensor &A, const Tensor &B, bool transpose_b) {
   // std::cout << "[CPP][TRACE] Matrix Multiplication" << std::endl;
   int64_t M = A.shape[0];
   int64_t K = A.shape[1];
-  if (K != B.shape[0]) {
-    std::cerr << "[CPP][ERROR] Matrix dimensions " << A.shape[0] << " x "
-              << A.shape[1] << " and " << B.shape[0] << " x " << B.shape[1]
-              << " do not match" << std::endl;
+  int64_t B_K = transpose_b ? B.shape[1] : B.shape[0];
+  int64_t N = transpose_b ? B.shape[0] : B.shape[1];
+  if (K != B_K) {
+    std::cerr << "[CPP][ERROR] Matrix dimensions " << M << " x " << K << " and "
+              << B_K << " x " << N << " do not match" << std::endl;
     exit(1);
   }
-  int64_t N = B.shape[1];
 
   if (out.data.empty() || out.shape[0] != M || out.shape[1] != N) {
     out.resize({M, N}); // allocate space
@@ -94,7 +94,9 @@ void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
     for (int64_t n = 0; n < N; ++n) {
       float val = 0.0f;
       for (int64_t k = 0; k < K; ++k) {
-        val += A(m, k) * B(k, n);
+        float a_val = A(m, k);
+        float b_val = transpose_b ? B(n, k) : B(k, n);
+        val += a_val * b_val;
       }
       out(m, n) = val;
     }
