@@ -1,6 +1,6 @@
-#include "llama3_8b.hpp"
-#include "operations.hpp"
-#include "utils.hpp"
+#include "llama3_8b.cuh"
+#include "operations.cuh"
+#include "utils.cuh"
 #include <cmath>
 #include <cstdint>
 #include <cuda_runtime.h>

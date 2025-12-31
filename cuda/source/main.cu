@@ -1,7 +1,7 @@
-#include "model.hpp"
-#include "operations.hpp"
-#include "tensor.hpp"
-#include "utils.hpp"
+#include "model.cuh"
+#include "operations.cuh"
+#include "tensor.cuh"
+#include "utils.cuh"
 #include <cmath>
 #include <cstdint>
 #include <iostream>

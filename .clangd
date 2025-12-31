@@ -24,3 +24,4 @@ CompileFlags:
     - -I/home/hyoungjo/miniconda3/envs/cuda/include
     - -I/home/hyoungjo/transformer-cuda/cuda/include
     - --cuda-gpu-arch=sm_86
+    - -xcuda

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tensor.hpp"
+#include "tensor.cuh"
 
 /**
  * The functions are designed not to return any values because CUDA kernel

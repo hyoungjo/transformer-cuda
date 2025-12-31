@@ -1,5 +1,5 @@
-#include "operations.hpp"
-#include "tensor.hpp"
+#include "operations.cuh"
+#include "tensor.cuh"
 #include <cfloat>
 #include <cmath>
 #include <cstdint>

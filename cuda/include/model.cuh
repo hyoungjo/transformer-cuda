@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tensor.hpp"
+#include "tensor.cuh"
 #include <map>
 #include <string>
 

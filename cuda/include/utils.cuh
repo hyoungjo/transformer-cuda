@@ -1,7 +1,7 @@
 #pragma once
 
-#include "model.hpp"
-#include "tensor.hpp"
+#include "model.cuh"
+#include "tensor.cuh"
 #include <fstream>
 #include <map>
 #include <memory>

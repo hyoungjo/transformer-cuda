@@ -1,6 +1,6 @@
-#include "model.hpp"
-#include "tensor.hpp"
-#include "utils.hpp"
+#include "model.cuh"
+#include "tensor.cuh"
+#include "utils.cuh"
 #include <algorithm>
 #include <chrono>
 #include <iostream>

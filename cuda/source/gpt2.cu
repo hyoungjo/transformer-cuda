@@ -1,6 +1,6 @@
-#include "gpt2.hpp"
-#include "operations.hpp"
-#include "utils.hpp"
+#include "gpt2.cuh"
+#include "operations.cuh"
+#include "utils.cuh"
 #include <cmath>
 #include <cstdint>
 #include <cuda_runtime.h>

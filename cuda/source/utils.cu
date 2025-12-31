@@ -1,7 +1,7 @@
-#include "gpt2.hpp"
-#include "llama3_8b.hpp"
-#include "tensor.hpp"
-#include "utils.hpp"
+#include "gpt2.cuh"
+#include "llama3_8b.cuh"
+#include "tensor.cuh"
+#include "utils.cuh"
 #include <cstdint>
 #include <fstream>
 #include <iostream>
