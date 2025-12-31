@@ -59,14 +59,13 @@ __global__ void embed_kernel(float *x, const float *embeddings,
   }
 }
 
-__global__ void positional_encoding_kernel(float *x,
-                                           const float *positional_encoding,
+__global__ void positional_encoding_kernel(float *x, const float *encodings,
                                            int hidden_size) {
   int t = threadIdx.x;
   int token = blockIdx.x;
 
   for (int i = t; i < hidden_size; i += blockDim.x) {
-    x[token * hidden_size + i] += positional_encoding[token * hidden_size + i];
+    x[token * hidden_size + i] += encodings[token * hidden_size + i];
   }
 }
 
@@ -805,9 +804,11 @@ __global__ void softmax_kernel(float *x, int dim_size, int rows) {
  * ============================================================
  */
 
-void embed(Tensor &x, const Tensor &embeddings, const int *input_ids,
-           int seq_len, int hidden_size) {
+void embed(Tensor &x, const Tensor &embeddings, const int *input_ids) {
   // std::cout << "[CUDA][TRACE] Operations embed()" << std::endl;
+  int seq_len = x.shape[0];
+  int hidden_size = x.shape[1];
+
   int block_size = 1024;
   dim3 block_dims(block_size);
   dim3 grid_dims(seq_len);
@@ -815,14 +816,16 @@ void embed(Tensor &x, const Tensor &embeddings, const int *input_ids,
                                           input_ids, hidden_size);
 }
 
-void positional_encoding(Tensor &x, const Tensor &positional_encoding,
-                         int seq_len, int hidden_size) {
+void positional_encoding(Tensor &x, const Tensor &encodings) {
   // std::cout << "[CUDA][TRACE] Operations positional_encoding()" << std::endl;
+  int seq_len = x.shape[0];
+  int hidden_size = x.shape[1];
+
   int block_size = 1024;
   dim3 block_dims(block_size);
   dim3 grid_dims(seq_len);
   positional_encoding_kernel<<<grid_dims, block_dims>>>(
-      x.d_data, positional_encoding.d_data, hidden_size);
+      x.d_data, encodings.d_data, hidden_size);
 }
 
 void rope(Tensor &x, int head_dim) {

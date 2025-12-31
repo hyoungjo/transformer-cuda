@@ -13,10 +13,8 @@
 
 namespace operations {
 
-void embed(Tensor &x, const Tensor &embeddings, const int *input_ids,
-           int seq_len, int hidden_size);
-void positional_encoding(Tensor &x, const Tensor &positional_encoding,
-                         int seq_len, int hidden_size);
+void embed(Tensor &x, const Tensor &embeddings, const int *input_ids);
+void positional_encoding(Tensor &x, const Tensor &positional_encoding);
 
 void rope(Tensor &x, int head_dim);
 

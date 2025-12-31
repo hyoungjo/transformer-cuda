@@ -572,10 +572,8 @@ void GPT2::mlp_block(Tensor &x, int layer_idx) {
 Tensor GPT2::forward(int *input_ids, int seq_len) {
   // std::cout << "[CUDA][TRACE] Beginning forward pass" << std::endl;
   Tensor x({seq_len, hidden_size});
-  operations::embed(x, weights["transformer.wte.weight"], input_ids, seq_len,
-                    hidden_size);
-  operations::positional_encoding(x, weights["transformer.wpe.weight"], seq_len,
-                                  hidden_size);
+  operations::embed(x, weights["transformer.wte.weight"], input_ids);
+  operations::positional_encoding(x, weights["transformer.wpe.weight"]);
 
   /**
    * Pre-allocate all temporary tensors.

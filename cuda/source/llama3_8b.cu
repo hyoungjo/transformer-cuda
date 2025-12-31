@@ -569,8 +569,7 @@ void LLaMA3_8B::mlp_block(Tensor &x, int layer_idx) {
 Tensor LLaMA3_8B::forward(int *input_ids, int seq_len) {
   // std::cout << "[CUDA][TRACE] Beginning forward pass" << std::endl;
   Tensor x({seq_len, hidden_size});
-  operations::embed(x, weights["model.embed_tokens.weight"], input_ids, seq_len,
-                    hidden_size);
+  operations::embed(x, weights["model.embed_tokens.weight"], input_ids);
 
   /**
    * Pre-allocate all temporary tensors.
