@@ -13,7 +13,7 @@
 
 # --------------- JOB CONFIGS --------------- #
 #SBATCH --job-name=default
-#SBATCH --time=480:00:00
+#SBATCH --time=72:00:00
 #SBATCH --output=logs/%x/cpp-timer-%j.out
 #SBATCH --error=logs/%x/cpp-timer-%j.err
 
