@@ -202,8 +202,11 @@ void rms_norm(Tensor &x, const Tensor &weight, float eps) {
  */
 void softmax(Tensor &x) {
   // std::cout << "[CPP][TRACE] Softmax " << std::endl;
-  int64_t last_dim = x.shape.back();
+  std::vector<int64_t> shape = x.shape;
+  int64_t last_dim = shape.back();
   int64_t flattened_rows = x.numel() / last_dim;
+
+  x.shape = {flattened_rows, last_dim};
 
   for (int64_t r = 0; r < flattened_rows; ++r) {
     // max used for numerical stability
@@ -222,6 +225,8 @@ void softmax(Tensor &x) {
       x(r, i) /= sum;
     }
   }
+
+  x.shape = shape;
 }
 
 } // namespace operations
