@@ -1,7 +1,9 @@
+import argparse
+
 import torch
 import torch.utils.benchmark as benchmark
 from helper import load_texts
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 def inference_isolated(model, inputs):
@@ -14,6 +16,10 @@ def inference_isolated(model, inputs):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_name", type=str, default="gpt2")
+    args = parser.parse_args()
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     print(f"[PYTHON][INFO] Running on Device: {device}")
@@ -25,14 +31,14 @@ def main():
     # "medium": bfloat16 (lower precision, fastest)
     torch.set_float32_matmul_precision("high")  # set to "high" for fair comparison
 
-    model_name = "gpt2"
-    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-    model = GPT2LMHeadModel.from_pretrained(model_name).to(device)
+    model_name = args.model_name
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
     model.eval()
 
     print("[PYTHON][INFO] Loading texts")
 
-    data_dir = "data"
+    data_dir = f"data/{model_name}"
     texts = load_texts(f"{data_dir}/texts.txt")
 
     print("[PYTHON][INFO] Running torch.utils.benchmark...")

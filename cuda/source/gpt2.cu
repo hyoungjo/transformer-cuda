@@ -16,9 +16,10 @@
  * [Q_1, Q_2, .., Q_h | K_1, K_2, .., K_h | V_1, V_2, .., V_h]
  * section_idx: Q = 0, K = 1, V = 2
  */
-__global__ void extract_head_kernel(float *head, const float *qkv, int seq_len,
-                                    int hidden_size, int head_dim, int head_idx,
-                                    int section_idx) {
+static __global__ void extract_head_kernel(float *head, const float *qkv,
+                                           int seq_len, int hidden_size,
+                                           int head_dim, int head_idx,
+                                           int section_idx) {
   int col = blockIdx.x * blockDim.x + threadIdx.x;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -36,9 +37,10 @@ __global__ void extract_head_kernel(float *head, const float *qkv, int seq_len,
  *
  * [H_1, H_2, .., H_h]
  */
-__global__ void insert_head_kernel(float *attention_values, const float *head,
-                                   int seq_len, int hidden_size, int head_dim,
-                                   int head_idx) {
+static __global__ void insert_head_kernel(float *attention_values,
+                                          const float *head, int seq_len,
+                                          int hidden_size, int head_dim,
+                                          int head_idx) {
   int col = blockIdx.x * blockDim.x + threadIdx.x;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -57,8 +59,8 @@ __global__ void insert_head_kernel(float *attention_values, const float *head,
  *
  * Q * K^T / sqrt(d_k)
  */
-__global__ void causal_mask_and_scale_kernel(float *scores, int seq_len,
-                                             float scale) {
+static __global__ void causal_mask_and_scale_kernel(float *scores, int seq_len,
+                                                    float scale) {
   int col = blockIdx.x * blockDim.x + threadIdx.x;
   int row = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -90,8 +92,10 @@ __global__ void causal_mask_and_scale_kernel(float *scores, int seq_len,
  * output for a token, head pair.
  */
 
-__global__ void naive_fused_attention_kernel(float *output, const float *qkv,
-                                             int hidden_size, int head_dim) {
+static __global__ void naive_fused_attention_kernel(float *output,
+                                                    const float *qkv,
+                                                    int hidden_size,
+                                                    int head_dim) {
   int token_idx = blockIdx.x;
   int head_idx = blockIdx.y;
 
@@ -107,6 +111,9 @@ __global__ void naive_fused_attention_kernel(float *output, const float *qkv,
   float exp_sum = 0.0f;
   extern __shared__ float out_val[];
 
+  for (int i = 0; i < head_dim; ++i)
+    out_val[i] = 0.0f;
+
   for (int t = 0; t <= token_idx; ++t) {
     /**
      * Calculate the attention score for a query, key pair by iterating across
@@ -116,9 +123,7 @@ __global__ void naive_fused_attention_kernel(float *output, const float *qkv,
     for (int i = 0; i < head_dim; ++i) {
       int q_idx = calculate_qkv_offset(token_idx, 0, head_idx, i);
       int k_idx = calculate_qkv_offset(t, 1, head_idx, i);
-      float q_val = qkv[q_idx];
-      float k_val = qkv[k_idx];
-      score += q_val * k_val;
+      score += qkv[q_idx] * qkv[k_idx];
     }
     score *= scale;
 
@@ -130,8 +135,7 @@ __global__ void naive_fused_attention_kernel(float *output, const float *qkv,
 
     for (int i = 0; i < head_dim; ++i) {
       int v_idx = calculate_qkv_offset(t, 2, head_idx, i);
-      float v_val = qkv[v_idx];
-      out_val[i] = out_val[i] * correction + exp_score * v_val;
+      out_val[i] = out_val[i] * correction + exp_score * qkv[v_idx];
     }
   }
 
@@ -141,8 +145,8 @@ __global__ void naive_fused_attention_kernel(float *output, const float *qkv,
   }
 }
 
-__global__ void fused_attention_kernel(float *output, const float *qkv,
-                                       int hidden_size) {
+static __global__ void fused_attention_kernel(float *output, const float *qkv,
+                                              int hidden_size) {
   extern __shared__ float reduction[];
 
   int token_idx = blockIdx.x;
@@ -255,9 +259,10 @@ __global__ void fused_attention_kernel(float *output, const float *qkv,
 #define HEAD_DIM 64
 #define NUM_WARPS HEAD_DIM / 32
 
-__global__ void flash_attention_warp_kernel(float *output, const float *qkv,
-                                            int seq_len, int hidden_size,
-                                            int head_dim) {
+static __global__ void flash_attention_warp_kernel(float *output,
+                                                   const float *qkv,
+                                                   int seq_len, int hidden_size,
+                                                   int head_dim) {
   /**
    * blockDim.x == 32
    * blockDim.y == QUERY_BLOCK_SIZE
@@ -421,8 +426,8 @@ __global__ void flash_attention_warp_kernel(float *output, const float *qkv,
 /**
  * Extract the last token's hidden state
  */
-__global__ void extract_last_token_kernel(float *out, const float *in,
-                                          int seq_len, int hidden_size) {
+static __global__ void extract_last_token_kernel(float *out, const float *in,
+                                                 int seq_len, int hidden_size) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < hidden_size) {
     out[i] = in[(seq_len - 1) * hidden_size + i];
@@ -435,14 +440,7 @@ __global__ void extract_last_token_kernel(float *out, const float *in,
  * ============================================================
  */
 
-GPT2::GPT2(const std::string &path) {
-  weights = utils::load_data(path, "gpu");
-
-  // transpose "lm_head.weight" for matmul
-  Tensor out({hidden_size, vocab_size});
-  operations::transpose(out, weights["lm_head.weight"]);
-  weights["lm_head.weight"] = std::move(out);
-}
+GPT2::GPT2(const std::string &path) { weights = utils::load_data(path, "gpu"); }
 
 void GPT2::attention_block(Tensor &x, int layer_idx) {
   // std::cout << "[CUDA][TRACE] Attention Layer " << layer_idx << std::endl;
@@ -556,25 +554,26 @@ void GPT2::mlp_block(Tensor &x, int layer_idx) {
   operations::layer_norm(x_norm, weights[prefix + "ln_2.weight"],
                          weights[prefix + "ln_2.bias"]);
 
-  // Tensor x1({seq_len, mlp_size});
-  operations::matmul(x1, x_norm, weights[prefix + "mlp.c_fc.weight"]);
-  operations::add_bias(x1, weights[prefix + "mlp.c_fc.bias"]);
+  // Tensor up({seq_len, mlp_size});
+  operations::matmul(up, x_norm, weights[prefix + "mlp.c_fc.weight"]);
+  operations::add_bias(up, weights[prefix + "mlp.c_fc.bias"]);
 
-  operations::gelu(x1);
+  operations::gelu(up);
 
-  // Tensor x2({seq_len, hidden_size});
-  operations::matmul(x2, x1, weights[prefix + "mlp.c_proj.weight"]);
-  operations::add_bias(x2, weights[prefix + "mlp.c_proj.bias"]);
+  // Tensor down({seq_len, hidden_size});
+  operations::matmul(down, up, weights[prefix + "mlp.c_proj.weight"]);
+  operations::add_bias(down, weights[prefix + "mlp.c_proj.bias"]);
 
-  operations::add(x, x2);
+  operations::add(x, down);
 }
 
 Tensor GPT2::forward(int *input_ids, int seq_len) {
   // std::cout << "[CUDA][TRACE] Beginning forward pass" << std::endl;
   Tensor x({seq_len, hidden_size});
-  operations::embed(x, weights["transformer.wte.weight"],
-                    weights["transformer.wpe.weight"], input_ids, seq_len,
+  operations::embed(x, weights["transformer.wte.weight"], input_ids, seq_len,
                     hidden_size);
+  operations::positional_encoding(x, weights["transformer.wpe.weight"], seq_len,
+                                  hidden_size);
 
   /**
    * Pre-allocate all temporary tensors.
@@ -587,8 +586,8 @@ Tensor GPT2::forward(int *input_ids, int seq_len) {
   qkv = Tensor({seq_len, 3 * hidden_size});
   attention_value = Tensor({seq_len, hidden_size});
   attention_output = Tensor({seq_len, hidden_size});
-  x1 = Tensor({seq_len, mlp_size});
-  x2 = Tensor({seq_len, hidden_size});
+  up = Tensor({seq_len, mlp_size});
+  down = Tensor({seq_len, hidden_size});
 
   for (int i = 0; i < num_layers; ++i) {
     attention_block(x, i);
@@ -605,7 +604,7 @@ Tensor GPT2::forward(int *input_ids, int seq_len) {
       prediction_token.d_data, x.d_data, seq_len, hidden_size);
 
   Tensor logits({1, vocab_size});
-  operations::matmul(logits, prediction_token, weights["lm_head.weight"]);
+  operations::matmul(logits, prediction_token, weights["lm_head.weight"], true);
 
   return logits;
 }

@@ -7,6 +7,58 @@
 
 namespace operations {
 
+/**
+ * Rotary Positional Embeddings (RoPE)
+ *
+ * The positional embedding is applied to after transforming input into query
+ * and key vectors. Let's denote query position as `m` and key position as `n`.
+ *
+ * A rotation is a transformation that operates within a plane, and therefore
+ * cannot be applied in 3D or higher dimensions. The representations of models
+ * consist of `hidden_size` dimensions, and therefore the rotation is applied
+ * to each pair of dimensions (i, i + 1), independently.
+ *
+ * The angle of rotation for query and key positions m would be `m * theta` and
+ * `n * theta`, respectively. The resulting equation preserves the relative
+ * distance between tokens, and naturally incorporates relative positional
+ * encoding.
+ *
+ * Refer to the original paper for more details: Su et al., "RoFormer: Enhanced
+ * transformer with rotary position embedding", arXiv preprint arXiv:2104.09864.
+ */
+void rope(Tensor &x, int head_dim) {
+  int64_t seq_len = x.shape[0];
+  int64_t hidden_size = x.shape[1];
+
+  /**
+   * For each token t, apply rotation to each hidden dimension pairs. The pairs
+   * are not adjacent, but split by head_dim / 2 in LLaMA 3. The indices for the
+   * pairs are (i, i + head_dim / 2).
+   *
+   * theta_i = base ^ (-2 * (i % d) / d)
+   */
+  const float base = 500000.0f; // for LLaMA 3
+
+  int64_t half_dim = head_dim / 2;
+
+  for (int64_t t = 0; t < seq_len; ++t) {
+    for (int64_t h = 0; h < hidden_size; h += head_dim) {
+      for (int64_t i = 0; i < half_dim; ++i) {
+        float theta_i = 1.0f / std::pow(base, (float)(i * 2) / head_dim);
+        float cos_val = std::cos(t * theta_i);
+        float sin_val = std::sin(t * theta_i);
+
+        int64_t idx1 = h + i;
+        int64_t idx2 = h + i + half_dim;
+        float x1 = x(t, idx1);
+        float x2 = x(t, idx2);
+        x(t, idx1) = x1 * cos_val - x2 * sin_val;
+        x(t, idx2) = x1 * sin_val + x2 * cos_val;
+      }
+    }
+  }
+}
+
 void transpose(Tensor &x) {
   // std::cout << "[CPP][TRACE] Transpose " << std::endl;
   int64_t rows = x.shape[0];
@@ -22,17 +74,17 @@ void transpose(Tensor &x) {
   x = std::move(out); // move assignment
 }
 
-void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
+void matmul(Tensor &out, const Tensor &A, const Tensor &B, bool transpose_b) {
   // std::cout << "[CPP][TRACE] Matrix Multiplication" << std::endl;
   int64_t M = A.shape[0];
   int64_t K = A.shape[1];
-  if (K != B.shape[0]) {
-    std::cerr << "[CPP][ERROR] Matrix dimensions " << A.shape[0] << " x "
-              << A.shape[1] << " and " << B.shape[0] << " x " << B.shape[1]
-              << " do not match" << std::endl;
+  int64_t B_K = transpose_b ? B.shape[1] : B.shape[0];
+  int64_t N = transpose_b ? B.shape[0] : B.shape[1];
+  if (K != B_K) {
+    std::cerr << "[CPP][ERROR] Matrix dimensions " << M << " x " << K << " and "
+              << B_K << " x " << N << " do not match" << std::endl;
     exit(1);
   }
-  int64_t N = B.shape[1];
 
   if (out.data.empty() || out.shape[0] != M || out.shape[1] != N) {
     out.resize({M, N}); // allocate space
@@ -42,7 +94,9 @@ void matmul(Tensor &out, const Tensor &A, const Tensor &B) {
     for (int64_t n = 0; n < N; ++n) {
       float val = 0.0f;
       for (int64_t k = 0; k < K; ++k) {
-        val += A(m, k) * B(k, n);
+        float a_val = A(m, k);
+        float b_val = transpose_b ? B(n, k) : B(k, n);
+        val += a_val * b_val;
       }
       out(m, n) = val;
     }
@@ -77,6 +131,13 @@ void gelu(Tensor &x) {
   }
 }
 
+void silu(Tensor &x) {
+  // std::cout << "[CPP][TRACE] SiLU " << std::endl;
+  for (float &val : x.data) {
+    val /= 1.0f + std::exp(-val);
+  }
+}
+
 void layer_norm(Tensor &x, const Tensor &weight, const Tensor &bias,
                 float eps) {
   // std::cout << "[CPP][TRACE] Layer Normalization " << std::endl;
@@ -101,6 +162,40 @@ void layer_norm(Tensor &x, const Tensor &weight, const Tensor &bias,
       float val = x(t, i);
       float norm_val = (val - mean) / std;
       x(t, i) = norm_val * weight(i) + bias(i);
+    }
+  }
+}
+
+/**
+ * Root Mean Square (RMS) Normalization
+ *
+ * "Re-centering" property of layer normalization is found to add little benefit
+ * to model performance. Therefore, LLaMA3 use root-mean-square normalization
+ * without centering.
+ *
+ * The equation changes as follows:
+ * LN: x[i] = ((x[i] - mean) / std) * weight[i] + bias[i];
+ * RMS: x[i] = (x[i] / rms) * weight[i];
+ *
+ * rms = sqrt(mean(x^2) + epsilon)
+ *
+ * `rms` is the root mean square of the input, which is equivalent to the
+ * standard deviation of the input with mean set to zero.
+ */
+void rms_norm(Tensor &x, const Tensor &weight, float eps) {
+  // std::cout << "[CPP][TRACE] RMS Normalization " << std::endl;
+  int64_t seq_len = x.shape[0];
+  int64_t hidden_size = x.shape[1];
+
+  for (int64_t t = 0; t < seq_len; ++t) {
+    float sum_of_squares = 0.0f;
+    for (int64_t i = 0; i < hidden_size; ++i) {
+      sum_of_squares += x(t, i) * x(t, i);
+    }
+
+    float rms = std::sqrt(sum_of_squares / hidden_size + eps);
+    for (int64_t i = 0; i < hidden_size; ++i) {
+      x(t, i) = x(t, i) / rms * weight(i);
     }
   }
 }

@@ -13,18 +13,27 @@
 
 namespace operations {
 
-void embed(Tensor &x, const Tensor &wte, const Tensor &wpe,
-           const int *input_ids, int seq_len, int hidden_size);
+void embed(Tensor &x, const Tensor &embeddings, const int *input_ids,
+           int seq_len, int hidden_size);
+void positional_encoding(Tensor &x, const Tensor &positional_encoding,
+                         int seq_len, int hidden_size);
+
+void rope(Tensor &x, int head_dim);
 
 void transpose(Tensor &out, const Tensor &x);
-void matmul(Tensor &out, const Tensor &A, const Tensor &B);
+void matmul(Tensor &out, const Tensor &A, const Tensor &B,
+            bool transpose_b = false);
 
 void add(Tensor &x, const Tensor &y);
 void add_bias(Tensor &x, const Tensor &bias);
 
+void multiply(Tensor &x, const Tensor &y);
+
 void gelu(Tensor &x);
+void silu(Tensor &x);
 
 void layer_norm(Tensor &x, const Tensor &g, const Tensor &b, float eps = 1e-5f);
+void rms_norm(Tensor &x, const Tensor &weight, float eps = 1e-5f);
 void softmax(Tensor &x);
 
 } // namespace operations

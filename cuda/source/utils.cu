@@ -1,10 +1,26 @@
+#include "gpt2.hpp"
+#include "llama3_8b.hpp"
 #include "tensor.hpp"
 #include "utils.hpp"
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <string>
 
 namespace utils {
+
+std::unique_ptr<Model> load_model(const std::string &model_name,
+                                  const std::string &data_dir) {
+  if (model_name == "gpt2") {
+    return std::make_unique<GPT2>(data_dir + "weights.bin");
+  } else if (model_name == "meta-llama/Meta-Llama-3-8B") {
+    return std::make_unique<LLaMA3_8B>(data_dir + "weights.bin");
+  } else {
+    std::cerr << "[CPP][ERROR] Unknown model name: " << model_name << std::endl;
+    exit(1);
+  }
+}
 
 std::map<std::string, Tensor> load_data(const std::string &path,
                                         std::string device) {

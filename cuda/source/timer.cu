@@ -1,9 +1,10 @@
-#include "gpt2.hpp"
+#include "model.hpp"
 #include "tensor.hpp"
 #include "utils.hpp"
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -12,19 +13,21 @@
 
 using namespace std::chrono;
 
-int main() {
+int main(int, char *argv[]) {
   std::cout << "[CUDA][INFO] Loading model weights..." << std::endl;
 
-  GPT2 model("data/weights.bin");
+  std::string model_name = std::string(argv[1]);
+  std::string data_dir = "data/" + model_name + "/";
+  std::unique_ptr<Model> model = utils::load_model(model_name, data_dir);
 
   int total = 15;
   std::cout << "[CUDA][INFO] Starting inference loop [0, " << total << ")"
             << std::endl;
 
   for (int i = 0; i < total; ++i) {
-    std::string data_path = "data/" + std::to_string(i);
+    std::string data_path = data_dir + std::to_string(i) + "/";
 
-    auto input_data = utils::load_data(data_path + "/input_ids.bin", "cpu");
+    auto input_data = utils::load_data(data_path + "input_ids.bin", "cpu");
     std::vector<int> input_ids;
     for (float id : input_data["input_ids"]) {
       input_ids.push_back(static_cast<int>(id));
@@ -38,7 +41,7 @@ int main() {
 
     // 'volatile' prevents the compiler from deleting the lines
     for (int w = 0; w < WARMUPS; ++w) {
-      Tensor logits = model.forward(d_input_ids, seq_len);
+      Tensor logits = model->forward(d_input_ids, seq_len);
       asm volatile("" : : "g"(logits.d_data) : "memory");
     }
 
@@ -47,7 +50,7 @@ int main() {
 
     for (int b = 0; b < ITERATIONS; ++b) {
       auto start = high_resolution_clock::now();
-      Tensor logits = model.forward(d_input_ids, seq_len);
+      Tensor logits = model->forward(d_input_ids, seq_len);
       auto end = high_resolution_clock::now();
       auto execution_time = duration_cast<microseconds>(end - start).count();
       durations.push_back(execution_time);

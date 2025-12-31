@@ -10,10 +10,10 @@
 #SBATCH --gres=gpu:1
 
 # --------------- JOB CONFIGS --------------- #
-#SBATCH --job-name=transformer-python
+#SBATCH --job-name=default
 #SBATCH --time=00:10:00
-#SBATCH --output=logs/%x_%j.out
-#SBATCH --error=logs/%x_%j.err
+#SBATCH --output=logs/%x/python-%j.out
+#SBATCH --error=logs/%x/python-%j.err
 
 # ------------ RESOURCE CONFIGS ------------- #
 #SBATCH --cpus-per-task=2
@@ -30,5 +30,5 @@ conda activate cuda
 
 # 2. Run
 echo "[SLURM][INFO] Run started on $(hostname) at $(date)"
-python3 python/main.py
+python3 python/main.py "$@"
 echo "[SLURM][INFO] Run finished at $(date)"

@@ -4,12 +4,7 @@
 #include <cmath>
 #include <iostream>
 
-GPT2::GPT2(const std::string &path) {
-  weights = utils::load_data(path);
-
-  // transpose "lm_head.weight" for matmul
-  operations::transpose(weights["lm_head.weight"]);
-}
+GPT2::GPT2(const std::string &path) { weights = utils::load_data(path); }
 
 void GPT2::attention_block(Tensor &x, int layer_idx) {
   // std::cout << "[CPP][TRACE] Attention Layer " << layer_idx << std::endl;
@@ -28,18 +23,6 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
 
   for (int64_t h = 0; h < num_heads; ++h) {
     /**
-     * To follow the PyTorch implementation of the self-attention, the algorithm
-     * splits the procedure token by token, instead of creating a separate Q, K,
-     * and V matrices:
-     *
-     * 1. This avoids memory allocation for intermediate results. i.e.,
-     * attention scores and attention coefficients.
-     * 2. It uses explicit masking, which reduces the number of calculations in
-     * half. However, this optimization is only effective to CPU-based
-     * execution.
-     */
-
-    /**
      * The tensor `qkv` with dimension (seq_len, 3 * hidden_size) is a
      * concatenation of Q, K, and V matrices. Each Q, K, and V matrix is also a
      * concatenation of the h heads.
@@ -50,8 +33,18 @@ void GPT2::attention_block(Tensor &x, int layer_idx) {
     int64_t k_offset = 1 * hidden_size + h * head_dim;
     int64_t v_offset = 2 * hidden_size + h * head_dim;
 
+    /**
+     * The algorithm splits the procedure token by token, instead of creating a
+     * separate Q, K, and V matrices:
+     *
+     * 1. This avoids memory allocation for intermediate results.
+     *    i.e., attention scores and attention coefficients.
+     * 2. It uses explicit masking i <= t, which reduces the number of
+     *    calculations in half. However, this optimization is only effective to
+     *    CPU-based execution.
+     */
     for (int64_t t = 0; t < seq_len; ++t) {
-      Tensor scores({t + 1});
+      Tensor scores({t + 1}); // 0-indexed
 
       // t-th token query dot product with 0 ~ t-th token key
       for (int64_t i = 0; i <= t; ++i) {
@@ -90,17 +83,17 @@ void GPT2::mlp_block(Tensor &x, int layer_idx) {
   operations::layer_norm(x_norm, weights[prefix + "ln_2.weight"],
                          weights[prefix + "ln_2.bias"]);
 
-  Tensor x1;
-  operations::matmul(x1, x_norm, weights[prefix + "mlp.c_fc.weight"]);
-  operations::add_bias(x1, weights[prefix + "mlp.c_fc.bias"]);
+  Tensor up;
+  operations::matmul(up, x_norm, weights[prefix + "mlp.c_fc.weight"]);
+  operations::add_bias(up, weights[prefix + "mlp.c_fc.bias"]);
 
-  operations::gelu(x1);
+  operations::gelu(up);
 
-  Tensor x2;
-  operations::matmul(x2, x1, weights[prefix + "mlp.c_proj.weight"]);
-  operations::add_bias(x2, weights[prefix + "mlp.c_proj.bias"]);
+  Tensor down;
+  operations::matmul(down, up, weights[prefix + "mlp.c_proj.weight"]);
+  operations::add_bias(down, weights[prefix + "mlp.c_proj.bias"]);
 
-  operations::add(x, x2);
+  operations::add(x, down);
 }
 
 Tensor GPT2::forward(const std::vector<int> &input_ids) {
@@ -117,8 +110,9 @@ Tensor GPT2::forward(const std::vector<int> &input_ids) {
     exit(1);
   }
 
+  int vocab_size = wte.shape[0];
   for (int t = 0; t < seq_len; ++t) {
-    if (input_ids[t] < 0 || input_ids[t] >= wte.shape[0]) {
+    if (input_ids[t] < 0 || input_ids[t] >= vocab_size) {
       std::cerr << "[CPP][ERROR] Token ID " << input_ids[t] << " out of bounds."
                 << std::endl;
       exit(1);
@@ -141,7 +135,7 @@ Tensor GPT2::forward(const std::vector<int> &input_ids) {
     prediction_token(i) = x(seq_len - 1, i);
 
   Tensor logits;
-  operations::matmul(logits, prediction_token, weights["lm_head.weight"]);
+  operations::matmul(logits, prediction_token, weights["lm_head.weight"], true);
 
   return logits;
 }

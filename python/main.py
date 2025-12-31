@@ -1,8 +1,9 @@
+import argparse
 import os
 
 import torch
 from helper import load_texts, save_to_binary
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 def inference(device, model, tokenizer, text):
@@ -24,16 +25,20 @@ def inference(device, model, tokenizer, text):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_name", type=str, default="gpt2")
+    args = parser.parse_args()
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     print("[PYTHON][INFO] Loading tokenizer and model")
 
-    model_name = "gpt2"
-    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-    model = GPT2LMHeadModel.from_pretrained(model_name).to(device)
+    model_name = args.model_name
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
     model.eval()
 
-    data_dir = "data"
+    data_dir = f"data/{model_name}"
     os.makedirs(data_dir, exist_ok=True)
 
     print("[PYTHON][INFO] Saving model weights")

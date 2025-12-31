@@ -1,16 +1,19 @@
-#include "gpt2.hpp"
+#include "model.hpp"
 #include "operations.hpp"
 #include "tensor.hpp"
 #include "utils.hpp"
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
-int main() {
+int main(int, char *argv[]) {
   std::cout << "[CPP][INFO] Loading model weights..." << std::endl;
 
-  GPT2 model("data/weights.bin");
+  std::string model_name = std::string(argv[1]);
+  std::string data_dir = "data/" + model_name + "/";
+  std::unique_ptr<Model> model = utils::load_model(model_name, data_dir);
 
   int total = 15;
   int passed = 0;
@@ -19,9 +22,9 @@ int main() {
             << std::endl;
 
   for (int i = 0; i < total; ++i) {
-    std::string data_path = "data/" + std::to_string(i);
+    std::string data_path = data_dir + std::to_string(i) + "/";
 
-    auto input_data = utils::load_data(data_path + "/input_ids.bin");
+    auto input_data = utils::load_data(data_path + "input_ids.bin");
     std::vector<int> input_ids;
     for (float id : input_data["input_ids"]) {
       input_ids.push_back(static_cast<int>(id));
@@ -30,7 +33,7 @@ int main() {
     std::cout << "[CPP][TRACE] Input size: " << input_ids.size() << " tokens"
               << std::endl;
 
-    Tensor logits = model.forward(input_ids);
+    Tensor logits = model->forward(input_ids);
     Tensor probs = logits; // shallow copy, no copy constructor
     operations::softmax(probs);
 
@@ -46,7 +49,7 @@ int main() {
     std::cout << "[CPP][TRACE] Predicted token_id: " << token_id << std::endl;
     std::cout << "[CPP][TRACE] Max probability: " << max_prob << std::endl;
 
-    auto expected_data = utils::load_data(data_path + "/probs.bin");
+    auto expected_data = utils::load_data(data_path + "probs.bin");
     Tensor &expected_probs = expected_data["probs"];
 
     float max_err = 0.0f;
