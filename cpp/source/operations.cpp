@@ -29,7 +29,7 @@ namespace operations {
  */
 void rope(Tensor &x, int head_dim) {
   int64_t seq_len = x.shape[0];
-  int64_t hidden_size = x.shape[1];
+  int64_t token_dim = x.shape[1];
 
   /**
    * For each token t, apply rotation to each hidden dimension pairs. The pairs
@@ -43,14 +43,15 @@ void rope(Tensor &x, int head_dim) {
   int64_t half_dim = head_dim / 2;
 
   for (int64_t t = 0; t < seq_len; ++t) {
-    for (int64_t h = 0; h < hidden_size; h += head_dim) {
+    for (int64_t h = 0; h < token_dim / head_dim; ++h) {
       for (int64_t i = 0; i < half_dim; ++i) {
         float theta_i = 1.0f / std::pow(base, (float)(i * 2) / head_dim);
-        float cos_val = std::cos(t * theta_i);
-        float sin_val = std::sin(t * theta_i);
+        float angle = t * theta_i;
+        float cos_val = cosf(angle);
+        float sin_val = sinf(angle);
 
-        int64_t idx1 = h + i;
-        int64_t idx2 = h + i + half_dim;
+        int64_t idx1 = h * head_dim + i;
+        int64_t idx2 = h * head_dim + i + half_dim;
         float x1 = x(t, idx1);
         float x2 = x(t, idx2);
         x(t, idx1) = x1 * cos_val - x2 * sin_val;
@@ -189,8 +190,9 @@ void rms_norm(Tensor &x, const Tensor &weight, float eps) {
     for (int64_t i = 0; i < hidden_size; ++i) {
       sum_of_squares += x(t, i) * x(t, i);
     }
+    float mean_of_squares = sum_of_squares / hidden_size;
+    float rms = std::sqrt(mean_of_squares + eps);
 
-    float rms = std::sqrt(sum_of_squares / hidden_size + eps);
     for (int64_t i = 0; i < hidden_size; ++i) {
       x(t, i) = x(t, i) / rms * weight(i);
     }
