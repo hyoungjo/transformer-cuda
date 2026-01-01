@@ -470,17 +470,17 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
   int64_t kv_dim = num_kv_heads * head_dim;
   int group_size = num_heads / num_kv_heads;
 
-  Tensor x_norm = x;
-  // cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
-  //            cudaMemcpyDeviceToDevice);
+  // Tensor x_norm = x;
+  cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
+             cudaMemcpyDeviceToDevice);
   operations::rms_norm(x_norm, weights[prefix + "input_layernorm.weight"]);
 
   /**
    * LLaMA uses separate query, key, value projections (without bias)
    */
-  Tensor q({seq_len, hidden_size});
-  Tensor k({seq_len, kv_dim});
-  Tensor v({seq_len, kv_dim});
+  // Tensor q({seq_len, hidden_size});
+  // Tensor k({seq_len, kv_dim});
+  // Tensor v({seq_len, kv_dim});
   operations::matmul(q, x_norm, weights[prefix + "self_attn.q_proj.weight"]);
   operations::matmul(k, x_norm, weights[prefix + "self_attn.k_proj.weight"]);
   operations::matmul(v, x_norm, weights[prefix + "self_attn.v_proj.weight"]);
@@ -488,7 +488,7 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
   operations::rope(q, head_dim);
   operations::rope(k, head_dim);
 
-  Tensor attention_value({seq_len, hidden_size});
+  // Tensor attention_value({seq_len, hidden_size});
 
   /**
    * A naive implementation of multi-head attention. It allocates Q, K, V for
@@ -561,7 +561,7 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
       attention_value.d_data, q.d_data, k.d_data, v.d_data, seq_len,
       hidden_size, kv_dim, head_dim, group_size);
 
-  Tensor attention_output({seq_len, hidden_size});
+  // Tensor attention_output({seq_len, hidden_size});
   operations::matmul(attention_output, attention_value,
                      weights[prefix + "self_attn.o_proj.weight"]);
 
@@ -573,21 +573,21 @@ void LLaMA3_8B::mlp_block(Tensor &x, int layer_idx) {
   std::string prefix = "model.layers." + std::to_string(layer_idx) + ".";
   int64_t seq_len = x.shape[0];
 
-  Tensor x_norm = x;
-  // cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
-  //            cudaMemcpyDeviceToDevice);
+  // Tensor x_norm = x;
+  cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
+             cudaMemcpyDeviceToDevice);
   operations::rms_norm(x_norm,
                        weights[prefix + "post_attention_layernorm.weight"]);
 
-  Tensor gate({seq_len, mlp_size});
-  Tensor up({seq_len, mlp_size});
+  // Tensor gate({seq_len, mlp_size});
+  // Tensor up({seq_len, mlp_size});
   operations::matmul(gate, x_norm, weights[prefix + "mlp.gate_proj.weight"]);
   operations::matmul(up, x_norm, weights[prefix + "mlp.up_proj.weight"]);
 
   operations::silu(gate);
   operations::multiply(gate, up);
 
-  Tensor down({seq_len, hidden_size});
+  // Tensor down({seq_len, hidden_size});
   operations::matmul(down, gate, weights[prefix + "mlp.down_proj.weight"]);
 
   operations::add(x, down);
@@ -605,16 +605,16 @@ Tensor LLaMA3_8B::forward(int *input_ids, int seq_len) {
    * this implementation avoids runtime allocation and deallocation during the
    * forward pass.
    */
-  // int64_t kv_dim = num_kv_heads * head_dim;
-  // x_norm = Tensor({seq_len, hidden_size});
-  // q = Tensor({seq_len, hidden_size});
-  // k = Tensor({seq_len, kv_dim});
-  // v = Tensor({seq_len, kv_dim});
-  // attention_value = Tensor({seq_len, hidden_size});
-  // attention_output = Tensor({seq_len, hidden_size});
-  // gate = Tensor({seq_len, mlp_size});
-  // up = Tensor({seq_len, mlp_size});
-  // down = Tensor({seq_len, hidden_size});
+  int64_t kv_dim = num_kv_heads * head_dim;
+  x_norm = Tensor({seq_len, hidden_size});
+  q = Tensor({seq_len, hidden_size});
+  k = Tensor({seq_len, kv_dim});
+  v = Tensor({seq_len, kv_dim});
+  attention_value = Tensor({seq_len, hidden_size});
+  attention_output = Tensor({seq_len, hidden_size});
+  gate = Tensor({seq_len, mlp_size});
+  up = Tensor({seq_len, mlp_size});
+  down = Tensor({seq_len, hidden_size});
 
   for (int i = 0; i < num_layers; ++i) {
     attention_block(x, i);
