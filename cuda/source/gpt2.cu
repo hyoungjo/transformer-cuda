@@ -442,7 +442,13 @@ static __global__ void extract_last_token_kernel(float *out, const float *in,
  * ============================================================
  */
 
-GPT2::GPT2(const std::string &path) { weights = utils::load_data(path, "gpu"); }
+GPT2::GPT2(const std::string &path) {
+  weights = utils::load_data(path, "gpu");
+
+  Tensor out({hidden_size, vocab_size}, "gpu");
+  operations::transpose(out, weights["lm_head.weight"]);
+  weights["lm_head.weight"] = std::move(out);
+}
 
 void GPT2::attention_block(Tensor &x, int layer_idx) {
   // std::cout << "[CUDA][TRACE] Attention Layer " << layer_idx << std::endl;
@@ -604,7 +610,7 @@ Tensor GPT2::forward(int *input_ids, int seq_len) {
       prediction_token.d_data, x.d_data, seq_len, hidden_size);
 
   Tensor logits({1, vocab_size});
-  operations::matmul(logits, prediction_token, weights["lm_head.weight"], true);
+  operations::matmul(logits, prediction_token, weights["lm_head.weight"]);
 
   return logits;
 }
