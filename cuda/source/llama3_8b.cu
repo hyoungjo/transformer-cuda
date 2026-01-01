@@ -540,17 +540,17 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
   /**
    * Implementation of naive and optimized fused attention kernel.
    */
-  dim3 block_dims(1);
-  dim3 grid_dims(seq_len, num_heads);
-  naive_fused_attention_kernel<<<grid_dims, block_dims,
-                                 head_dim * sizeof(float)>>>(
-      attention_value.d_data, q.d_data, k.d_data, v.d_data, hidden_size, kv_dim,
-      head_dim, group_size);
-  // dim3 block_dims(head_dim);
+  // dim3 block_dims(1);
   // dim3 grid_dims(seq_len, num_heads);
-  // fused_attention_kernel<<<grid_dims, block_dims>>>(
+  // naive_fused_attention_kernel<<<grid_dims, block_dims,
+  //                                head_dim * sizeof(float)>>>(
   //     attention_value.d_data, q.d_data, k.d_data, v.d_data, hidden_size,
-  //     kv_dim, group_size);
+  //     kv_dim, head_dim, group_size);
+  dim3 block_dims(head_dim);
+  dim3 grid_dims(seq_len, num_heads);
+  fused_attention_kernel<<<grid_dims, block_dims>>>(
+      attention_value.d_data, q.d_data, k.d_data, v.d_data, hidden_size, kv_dim,
+      group_size);
 
   /**
    * Implementation of the flash attention kernel.
