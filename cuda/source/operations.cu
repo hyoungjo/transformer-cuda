@@ -858,17 +858,17 @@ void matmul(Tensor &out, const Tensor &A, const Tensor &B, bool transpose_b) {
   int64_t K = A.shape[1];
   int64_t N = transpose_b ? B.shape[0] : B.shape[1];
 
-  dim3 block_dims(TILE_SIZE, TILE_SIZE);
-  dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
+  // dim3 block_dims(TILE_SIZE, TILE_SIZE);
+  // dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
   // naive_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
   //     out.d_data, A.d_data, B.d_data, M, N, K, transpose_b);
-  matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
-      out.d_data, A.d_data, B.d_data, M, N, K, transpose_b);
-
-  // dim3 block_dims(128); // 32 x 4 warps
-  // dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
-  // tensor_core_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
+  // matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
   //     out.d_data, A.d_data, B.d_data, M, N, K, transpose_b);
+
+  dim3 block_dims(128); // 32 x 4 warps
+  dim3 grid_dims(1 + (N - 1) / TILE_SIZE, 1 + (M - 1) / TILE_SIZE);
+  tensor_core_matrix_multiplication_kernel<<<grid_dims, block_dims>>>(
+      out.d_data, A.d_data, B.d_data, M, N, K, transpose_b);
 }
 
 void add(Tensor &x, const Tensor &y) {
