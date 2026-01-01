@@ -470,17 +470,17 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
   int64_t kv_dim = num_kv_heads * head_dim;
   int group_size = num_heads / num_kv_heads;
 
-  // Tensor x_norm = x;
-  cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
-             cudaMemcpyDeviceToDevice);
+  Tensor x_norm = x;
+  // cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
+  //            cudaMemcpyDeviceToDevice);
   operations::rms_norm(x_norm, weights[prefix + "input_layernorm.weight"]);
 
   /**
    * LLaMA uses separate query, key, value projections (without bias)
    */
-  // Tensor q({seq_len, hidden_size});
-  // Tensor k({seq_len, kv_dim});
-  // Tensor v({seq_len, kv_dim});
+  Tensor q({seq_len, hidden_size});
+  Tensor k({seq_len, kv_dim});
+  Tensor v({seq_len, kv_dim});
   operations::matmul(q, x_norm, weights[prefix + "self_attn.q_proj.weight"]);
   operations::matmul(k, x_norm, weights[prefix + "self_attn.k_proj.weight"]);
   operations::matmul(v, x_norm, weights[prefix + "self_attn.v_proj.weight"]);
@@ -488,55 +488,54 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
   operations::rope(q, head_dim);
   operations::rope(k, head_dim);
 
-  // Tensor attention_value({seq_len, hidden_size});
+  Tensor attention_value({seq_len, hidden_size});
 
   /**
    * A naive implementation of multi-head attention. It allocates Q, K, V for
    * each head and computes attention scores, coefficients, and values for
    * each head with kernels from `operations.cu`.
    */
-  // Tensor q_head({seq_len, head_dim});
-  // Tensor k_head({seq_len, head_dim});
-  // Tensor k_head_transposed({head_dim, seq_len});
-  // Tensor v_head({seq_len, head_dim});
-  // Tensor attention_head_scores({seq_len, seq_len});
-  // Tensor attention_head_values({seq_len, head_dim});
+  Tensor q_head({seq_len, head_dim});
+  Tensor k_head({seq_len, head_dim});
+  Tensor k_head_transposed({head_dim, seq_len});
+  Tensor v_head({seq_len, head_dim});
+  Tensor attention_head_scores({seq_len, seq_len});
+  Tensor attention_head_values({seq_len, head_dim});
 
-  // dim3 block_dims(16, 16);
-  // dim3 head_grid_dims(1 + (head_dim - 1) / 16, 1 + (seq_len - 1) / 16);
-  // dim3 score_grid_dims(1 + (seq_len - 1) / 16, 1 + (seq_len - 1) / 16);
+  dim3 block_dims(16, 16);
+  dim3 head_grid_dims(1 + (head_dim - 1) / 16, 1 + (seq_len - 1) / 16);
+  dim3 score_grid_dims(1 + (seq_len - 1) / 16, 1 + (seq_len - 1) / 16);
 
-  // float scale = 1.0f / std::sqrt(static_cast<float>(head_dim));
+  float scale = 1.0f / std::sqrt(static_cast<float>(head_dim));
 
-  // for (int h = 0; h < num_heads; ++h) {
-  //   /**
-  //    * Extract Q, K, V heads from joint matrix `qkv` and compute attention
-  //    * scores, coefficients, and values.
-  //    */
-  //   int kv_head = h / group_size;
-  //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
-  //       q_head.d_data, q.d_data, seq_len, hidden_size, head_dim, h);
-  //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
-  //       k_head.d_data, k.d_data, seq_len, kv_dim, head_dim, kv_head);
-  //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
-  //       v_head.d_data, v.d_data, seq_len, kv_dim, head_dim, kv_head);
+  for (int h = 0; h < num_heads; ++h) {
+    /**
+     * Extract specific Q, K, V heads from joint head matrices and compute
+     * attention scores, coefficients, and values.
+     */
+    int kv_head = h / group_size;
+    extract_head_kernel<<<head_grid_dims, block_dims>>>(
+        q_head.d_data, q.d_data, seq_len, hidden_size, head_dim, h);
+    extract_head_kernel<<<head_grid_dims, block_dims>>>(
+        k_head.d_data, k.d_data, seq_len, kv_dim, head_dim, kv_head);
+    extract_head_kernel<<<head_grid_dims, block_dims>>>(
+        v_head.d_data, v.d_data, seq_len, kv_dim, head_dim, kv_head);
 
-  //   operations::transpose(k_head_transposed, k_head);
-  //   operations::matmul(attention_head_scores, q_head,
-  //                      k_head_transposed); // Score = Q * K^T
-  //   causal_mask_and_scale_kernel<<<score_grid_dims, block_dims>>>(
-  //       attention_head_scores.d_data, seq_len, scale);
+    operations::transpose(k_head_transposed, k_head);
+    operations::matmul(attention_head_scores, q_head, k_head_transposed);
+    causal_mask_and_scale_kernel<<<score_grid_dims, block_dims>>>(
+        attention_head_scores.d_data, seq_len, scale);
 
-  //   operations::softmax(attention_head_scores);
-  //   operations::matmul(attention_head_values, attention_head_scores, v_head);
+    operations::softmax(attention_head_scores);
+    operations::matmul(attention_head_values, attention_head_scores, v_head);
 
-  //   /**
-  //    * Save the results to the attention_value tensor.
-  //    */
-  //   insert_head_kernel<<<head_grid_dims, block_dims>>>(
-  //       attention_value.d_data, attention_head_values.d_data, seq_len,
-  //       hidden_size, head_dim, h);
-  // }
+    /**
+     * Save the results to the attention_value tensor.
+     */
+    insert_head_kernel<<<head_grid_dims, block_dims>>>(
+        attention_value.d_data, attention_head_values.d_data, seq_len,
+        hidden_size, head_dim, h);
+  }
 
   /**
    * Implementation of naive and optimized fused attention kernel.
@@ -556,13 +555,13 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
   /**
    * Implementation of the flash attention kernel.
    */
-  dim3 block_dims(32, QUERY_BLOCK_SIZE);
-  dim3 grid_dims(num_heads, 1 + (seq_len - 1) / QUERY_BLOCK_SIZE);
-  flash_attention_warp_kernel<<<grid_dims, block_dims>>>(
-      attention_value.d_data, q.d_data, k.d_data, v.d_data, seq_len,
-      hidden_size, kv_dim, head_dim, group_size);
+  // dim3 block_dims(32, QUERY_BLOCK_SIZE);
+  // dim3 grid_dims(num_heads, 1 + (seq_len - 1) / QUERY_BLOCK_SIZE);
+  // flash_attention_warp_kernel<<<grid_dims, block_dims>>>(
+  //     attention_value.d_data, q.d_data, k.d_data, v.d_data, seq_len,
+  //     hidden_size, kv_dim, head_dim, group_size);
 
-  // Tensor attention_output({seq_len, hidden_size});
+  Tensor attention_output({seq_len, hidden_size});
   operations::matmul(attention_output, attention_value,
                      weights[prefix + "self_attn.o_proj.weight"]);
 
@@ -574,21 +573,21 @@ void LLaMA3_8B::mlp_block(Tensor &x, int layer_idx) {
   std::string prefix = "model.layers." + std::to_string(layer_idx) + ".";
   int64_t seq_len = x.shape[0];
 
-  // Tensor x_norm = x;
-  cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
-             cudaMemcpyDeviceToDevice);
+  Tensor x_norm = x;
+  // cudaMemcpy(x_norm.d_data, x.d_data, x.numel() * sizeof(float),
+  //            cudaMemcpyDeviceToDevice);
   operations::rms_norm(x_norm,
                        weights[prefix + "post_attention_layernorm.weight"]);
 
-  // Tensor gate({seq_len, mlp_size});
-  // Tensor up({seq_len, mlp_size});
+  Tensor gate({seq_len, mlp_size});
+  Tensor up({seq_len, mlp_size});
   operations::matmul(gate, x_norm, weights[prefix + "mlp.gate_proj.weight"]);
   operations::matmul(up, x_norm, weights[prefix + "mlp.up_proj.weight"]);
 
   operations::silu(gate);
   operations::multiply(gate, up);
 
-  // Tensor down({seq_len, hidden_size})
+  Tensor down({seq_len, hidden_size});
   operations::matmul(down, gate, weights[prefix + "mlp.down_proj.weight"]);
 
   operations::add(x, down);
@@ -606,16 +605,16 @@ Tensor LLaMA3_8B::forward(int *input_ids, int seq_len) {
    * this implementation avoids runtime allocation and deallocation during the
    * forward pass.
    */
-  int64_t kv_dim = num_kv_heads * head_dim;
-  x_norm = Tensor({seq_len, hidden_size});
-  q = Tensor({seq_len, hidden_size});
-  k = Tensor({seq_len, kv_dim});
-  v = Tensor({seq_len, kv_dim});
-  attention_value = Tensor({seq_len, hidden_size});
-  attention_output = Tensor({seq_len, hidden_size});
-  gate = Tensor({seq_len, mlp_size});
-  up = Tensor({seq_len, mlp_size});
-  down = Tensor({seq_len, hidden_size});
+  // int64_t kv_dim = num_kv_heads * head_dim;
+  // x_norm = Tensor({seq_len, hidden_size});
+  // q = Tensor({seq_len, hidden_size});
+  // k = Tensor({seq_len, kv_dim});
+  // v = Tensor({seq_len, kv_dim});
+  // attention_value = Tensor({seq_len, hidden_size});
+  // attention_output = Tensor({seq_len, hidden_size});
+  // gate = Tensor({seq_len, mlp_size});
+  // up = Tensor({seq_len, mlp_size});
+  // down = Tensor({seq_len, hidden_size});
 
   for (int i = 0; i < num_layers; ++i) {
     attention_block(x, i);

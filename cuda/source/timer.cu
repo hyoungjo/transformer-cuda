@@ -8,8 +8,8 @@
 #include <string>
 #include <vector>
 
-#define WARMUPS 5
-#define ITERATIONS 20
+#define WARMUPS 3
+#define ITERATIONS 10
 
 using namespace std::chrono;
 
@@ -20,11 +20,10 @@ int main(int, char *argv[]) {
   std::string data_dir = "data/" + model_name + "/";
   std::unique_ptr<Model> model = utils::load_model(model_name, data_dir);
 
-  int total = 15;
-  std::cout << "[CUDA][INFO] Starting inference loop [0, " << total << ")"
-            << std::endl;
+  std::cout << "[CUDA][INFO] Starting inference loop" << std::endl;
 
-  for (int i = 0; i < total; ++i) {
+  std::vector<int> indices = {0, 2, 3, 13, 14};
+  for (int i : indices) {
     std::string data_path = data_dir + std::to_string(i) + "/";
 
     auto input_data = utils::load_data(data_path + "input_ids.bin", "cpu");
@@ -52,7 +51,7 @@ int main(int, char *argv[]) {
       auto start = high_resolution_clock::now();
       Tensor logits = model->forward(d_input_ids, seq_len);
       auto end = high_resolution_clock::now();
-      auto execution_time = duration_cast<microseconds>(end - start).count();
+      auto execution_time = duration_cast<milliseconds>(end - start).count();
       durations.push_back(execution_time);
     }
     cudaFree(d_input_ids);
@@ -76,8 +75,8 @@ int main(int, char *argv[]) {
     double iqr = q3 - q1;
 
     std::cout << "Text " << i << " | Seq Len: " << input_ids.size()
-              << "\n   Median: " << median << " μs"
-              << "\n   IQR:    " << iqr << " μs (" << q1 << " to " << q3 << ")"
+              << "\n   Median: " << median << " ms"
+              << "\n   IQR:    " << iqr << " ms (" << q1 << " to " << q3 << ")"
               << "\n   " << WARMUPS << " warmups, " << ITERATIONS
               << " iterations" << std::endl;
 
