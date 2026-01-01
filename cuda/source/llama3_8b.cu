@@ -495,57 +495,57 @@ void LLaMA3_8B::attention_block(Tensor &x, int layer_idx) {
    * each head and computes attention scores, coefficients, and values for
    * each head with kernels from `operations.cu`.
    */
-  Tensor q_head({seq_len, head_dim});
-  Tensor k_head({seq_len, head_dim});
-  Tensor k_head_transposed({head_dim, seq_len});
-  Tensor v_head({seq_len, head_dim});
-  Tensor attention_head_scores({seq_len, seq_len});
-  Tensor attention_head_values({seq_len, head_dim});
+  // Tensor q_head({seq_len, head_dim});
+  // Tensor k_head({seq_len, head_dim});
+  // Tensor k_head_transposed({head_dim, seq_len});
+  // Tensor v_head({seq_len, head_dim});
+  // Tensor attention_head_scores({seq_len, seq_len});
+  // Tensor attention_head_values({seq_len, head_dim});
 
-  dim3 block_dims(16, 16);
-  dim3 head_grid_dims(1 + (head_dim - 1) / 16, 1 + (seq_len - 1) / 16);
-  dim3 score_grid_dims(1 + (seq_len - 1) / 16, 1 + (seq_len - 1) / 16);
+  // dim3 block_dims(16, 16);
+  // dim3 head_grid_dims(1 + (head_dim - 1) / 16, 1 + (seq_len - 1) / 16);
+  // dim3 score_grid_dims(1 + (seq_len - 1) / 16, 1 + (seq_len - 1) / 16);
 
-  float scale = 1.0f / std::sqrt(static_cast<float>(head_dim));
+  // float scale = 1.0f / std::sqrt(static_cast<float>(head_dim));
 
-  for (int h = 0; h < num_heads; ++h) {
-    /**
-     * Extract specific Q, K, V heads from joint head matrices and compute
-     * attention scores, coefficients, and values.
-     */
-    int kv_head = h / group_size;
-    extract_head_kernel<<<head_grid_dims, block_dims>>>(
-        q_head.d_data, q.d_data, seq_len, hidden_size, head_dim, h);
-    extract_head_kernel<<<head_grid_dims, block_dims>>>(
-        k_head.d_data, k.d_data, seq_len, kv_dim, head_dim, kv_head);
-    extract_head_kernel<<<head_grid_dims, block_dims>>>(
-        v_head.d_data, v.d_data, seq_len, kv_dim, head_dim, kv_head);
+  // for (int h = 0; h < num_heads; ++h) {
+  //   /**
+  //    * Extract specific Q, K, V heads from joint head matrices and compute
+  //    * attention scores, coefficients, and values.
+  //    */
+  //   int kv_head = h / group_size;
+  //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
+  //       q_head.d_data, q.d_data, seq_len, hidden_size, head_dim, h);
+  //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
+  //       k_head.d_data, k.d_data, seq_len, kv_dim, head_dim, kv_head);
+  //   extract_head_kernel<<<head_grid_dims, block_dims>>>(
+  //       v_head.d_data, v.d_data, seq_len, kv_dim, head_dim, kv_head);
 
-    operations::transpose(k_head_transposed, k_head);
-    operations::matmul(attention_head_scores, q_head, k_head_transposed);
-    causal_mask_and_scale_kernel<<<score_grid_dims, block_dims>>>(
-        attention_head_scores.d_data, seq_len, scale);
+  //   operations::transpose(k_head_transposed, k_head);
+  //   operations::matmul(attention_head_scores, q_head, k_head_transposed);
+  //   causal_mask_and_scale_kernel<<<score_grid_dims, block_dims>>>(
+  //       attention_head_scores.d_data, seq_len, scale);
 
-    operations::softmax(attention_head_scores);
-    operations::matmul(attention_head_values, attention_head_scores, v_head);
+  //   operations::softmax(attention_head_scores);
+  //   operations::matmul(attention_head_values, attention_head_scores, v_head);
 
-    /**
-     * Save the results to the attention_value tensor.
-     */
-    insert_head_kernel<<<head_grid_dims, block_dims>>>(
-        attention_value.d_data, attention_head_values.d_data, seq_len,
-        hidden_size, head_dim, h);
-  }
+  //   /**
+  //    * Save the results to the attention_value tensor.
+  //    */
+  //   insert_head_kernel<<<head_grid_dims, block_dims>>>(
+  //       attention_value.d_data, attention_head_values.d_data, seq_len,
+  //       hidden_size, head_dim, h);
+  // }
 
   /**
    * Implementation of naive and optimized fused attention kernel.
    */
-  // dim3 block_dims(1);
-  // dim3 grid_dims(seq_len, num_heads);
-  // naive_fused_attention_kernel<<<grid_dims, block_dims,
-  //                                head_dim * sizeof(float)>>>(
-  //     attention_value.d_data, q.d_data, k.d_data, v.d_data, hidden_size,
-  //     kv_dim, head_dim, group_size);
+  dim3 block_dims(1);
+  dim3 grid_dims(seq_len, num_heads);
+  naive_fused_attention_kernel<<<grid_dims, block_dims,
+                                 head_dim * sizeof(float)>>>(
+      attention_value.d_data, q.d_data, k.d_data, v.d_data, hidden_size, kv_dim,
+      head_dim, group_size);
   // dim3 block_dims(head_dim);
   // dim3 grid_dims(seq_len, num_heads);
   // fused_attention_kernel<<<grid_dims, block_dims>>>(
