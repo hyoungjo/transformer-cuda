@@ -96,7 +96,7 @@ void LLaMA3_8B::mlp_block(Tensor &x, int layer_idx) {
   std::string prefix = "model.layers." + std::to_string(layer_idx) + ".";
   int64_t seq_len = x.shape[0];
 
-  Tensor x_norm({seq_len, hidden_size});
+  Tensor x_norm = x;
   operations::rms_norm(x_norm,
                        weights[prefix + "post_attention_layernorm.weight"]);
 
