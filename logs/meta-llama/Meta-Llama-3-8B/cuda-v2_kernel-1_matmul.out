@@ -1,0 +1,104 @@
+make -C cuda
+make[1]: Entering directory '/home/hyoungjo/transformer-cuda/cuda'
+/home/hyoungjo/miniconda3/envs/cuda/bin/nvcc -arch=sm_86 -Xcompiler -Wall,-Wextra -O3 -diag-suppress 177 -Iinclude -c source/operations.cu -o source/operations.o
+/home/hyoungjo/miniconda3/envs/cuda/bin/nvcc -arch=sm_86 -Xcompiler -Wall,-Wextra -O3 -diag-suppress 177 -Iinclude -c source/llama3_8b.cu -o source/llama3_8b.o
+/home/hyoungjo/miniconda3/envs/cuda/bin/nvcc -arch=sm_86 -Xcompiler -Wall,-Wextra -O3 -diag-suppress 177 -Iinclude source/tensor.o source/operations.o source/utils.o source/gpt2.o source/llama3_8b.o source/main.o -o main
+/home/hyoungjo/miniconda3/envs/cuda/bin/nvcc -arch=sm_86 -Xcompiler -Wall,-Wextra -O3 -diag-suppress 177 -Iinclude source/tensor.o source/operations.o source/utils.o source/gpt2.o source/llama3_8b.o source/timer.o -o timer
+make[1]: Leaving directory '/home/hyoungjo/transformer-cuda/cuda'
+[SLURM][INFO] Run started on baram at Thu Jan  1 03:49:37 PM KST 2026
+[CUDA][INFO] Loading model weights...
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/weights.bin
+[CUDA][INFO] Starting inference loop [0, 15)
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/0/input_ids.bin
+[CUDA][TRACE] Input size: 14 tokens
+[CUDA][TRACE] Predicted token_id: 690
+[CUDA][TRACE] Max probability: 0.17523
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/0/probs.bin
+[CUDA][INFO] Sample 0 Passed | Max Error: 5.05596e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/1/input_ids.bin
+[CUDA][TRACE] Input size: 17 tokens
+[CUDA][TRACE] Predicted token_id: 430
+[CUDA][TRACE] Max probability: 0.470197
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/1/probs.bin
+[CUDA][INFO] Sample 1 Passed | Max Error: 0.000114024
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/2/input_ids.bin
+[CUDA][TRACE] Input size: 63 tokens
+[CUDA][TRACE] Predicted token_id: 430
+[CUDA][TRACE] Max probability: 0.221667
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/2/probs.bin
+[CUDA][INFO] Sample 2 Passed | Max Error: 6.43432e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/3/input_ids.bin
+[CUDA][TRACE] Input size: 192 tokens
+[CUDA][TRACE] Predicted token_id: 264
+[CUDA][TRACE] Max probability: 0.094589
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/3/probs.bin
+[CUDA][INFO] Sample 3 Passed | Max Error: 2.56002e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/4/input_ids.bin
+[CUDA][TRACE] Input size: 297 tokens
+[CUDA][TRACE] Predicted token_id: 22541
+[CUDA][TRACE] Max probability: 0.126867
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/4/probs.bin
+[CUDA][INFO] Sample 4 Passed | Max Error: 3.14415e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/5/input_ids.bin
+[CUDA][TRACE] Input size: 301 tokens
+[CUDA][TRACE] Predicted token_id: 279
+[CUDA][TRACE] Max probability: 0.204244
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/5/probs.bin
+[CUDA][INFO] Sample 5 Passed | Max Error: 7.72178e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/6/input_ids.bin
+[CUDA][TRACE] Input size: 306 tokens
+[CUDA][TRACE] Predicted token_id: 4017
+[CUDA][TRACE] Max probability: 0.0962978
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/6/probs.bin
+[CUDA][INFO] Sample 6 Passed | Max Error: 1.91927e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/7/input_ids.bin
+[CUDA][TRACE] Input size: 322 tokens
+[CUDA][TRACE] Predicted token_id: 279
+[CUDA][TRACE] Max probability: 0.344863
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/7/probs.bin
+[CUDA][INFO] Sample 7 Passed | Max Error: 8.13305e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/8/input_ids.bin
+[CUDA][TRACE] Input size: 332 tokens
+[CUDA][TRACE] Predicted token_id: 264
+[CUDA][TRACE] Max probability: 0.2708
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/8/probs.bin
+[CUDA][INFO] Sample 8 Passed | Max Error: 8.06153e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/9/input_ids.bin
+[CUDA][TRACE] Input size: 338 tokens
+[CUDA][TRACE] Predicted token_id: 279
+[CUDA][TRACE] Max probability: 0.209972
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/9/probs.bin
+[CUDA][INFO] Sample 9 Passed | Max Error: 8.09729e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/10/input_ids.bin
+[CUDA][TRACE] Input size: 344 tokens
+[CUDA][TRACE] Predicted token_id: 374
+[CUDA][TRACE] Max probability: 0.273177
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/10/probs.bin
+[CUDA][INFO] Sample 10 Passed | Max Error: 9.13143e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/11/input_ids.bin
+[CUDA][TRACE] Input size: 358 tokens
+[CUDA][TRACE] Predicted token_id: 5353
+[CUDA][TRACE] Max probability: 0.061022
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/11/probs.bin
+[CUDA][INFO] Sample 11 Passed | Max Error: 1.56574e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/12/input_ids.bin
+[CUDA][TRACE] Input size: 355 tokens
+[CUDA][TRACE] Predicted token_id: 374
+[CUDA][TRACE] Max probability: 0.245066
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/12/probs.bin
+[CUDA][INFO] Sample 12 Passed | Max Error: 0.000113636
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/13/input_ids.bin
+[CUDA][TRACE] Input size: 352 tokens
+[CUDA][TRACE] Predicted token_id: 706
+[CUDA][TRACE] Max probability: 0.217366
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/13/probs.bin
+[CUDA][INFO] Sample 13 Passed | Max Error: 8.25524e-05
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/14/input_ids.bin
+[CUDA][TRACE] Input size: 713 tokens
+[CUDA][TRACE] Predicted token_id: 264
+[CUDA][TRACE] Max probability: 0.185889
+[CUDA][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/14/probs.bin
+[CUDA][INFO] Sample 14 Passed | Max Error: 5.96642e-05
+------------------------------------------------
+[CUDA][INFO] Final Result: 15/15 passed.
+[SLURM][INFO] Run finished at Thu Jan  1 03:52:34 PM KST 2026

@@ -1,0 +1,34 @@
+make -C cpp
+make[1]: Entering directory '/home/hyoungjo/transformer-cuda/cpp'
+make[1]: Nothing to be done for 'all'.
+make[1]: Leaving directory '/home/hyoungjo/transformer-cuda/cpp'
+[SLURM][INFO] Run started on baram at Thu Jan  1 08:39:03 PM KST 2026
+[CPP][INFO] Loading model weights...
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/weights.bin
+[CPP][INFO] Starting inference loop
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/0/input_ids.bin
+Text 0 | Seq Len: 14
+   Median: 403337 ms
+   IQR:    1289 ms (402121 to 403410)
+   1 warmups, 5 iterations
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/2/input_ids.bin
+Text 2 | Seq Len: 63
+   Median: 1.80118e+06 ms
+   IQR:    11983 ms (1.79632e+06 to 1.8083e+06)
+   1 warmups, 5 iterations
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/3/input_ids.bin
+Text 3 | Seq Len: 192
+   Median: 5.54735e+06 ms
+   IQR:    12822 ms (5.54701e+06 to 5.55984e+06)
+   1 warmups, 5 iterations
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/13/input_ids.bin
+Text 13 | Seq Len: 352
+   Median: 1.0833e+07 ms
+   IQR:    124149 ms (1.07161e+07 to 1.08403e+07)
+   1 warmups, 5 iterations
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/14/input_ids.bin
+Text 14 | Seq Len: 713
+   Median: 2.09741e+07 ms
+   IQR:    107067 ms (2.09681e+07 to 2.10751e+07)
+   1 warmups, 5 iterations
+[SLURM][INFO] Run finished at Sun Jan  4 02:30:25 PM KST 2026

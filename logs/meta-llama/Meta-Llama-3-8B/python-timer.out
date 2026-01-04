@@ -1,0 +1,95 @@
+[SLURM][INFO] Run started on baram at Sat Dec 27 04:32:48 PM KST 2025
+[PYTHON][INFO] Running on Device: cuda
+[PYTHON][INFO] Loading tokenizer and model
+[PYTHON][INFO] Loading texts
+[PYTHON][INFO] Running torch.utils.benchmark...
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e3967a33fb0>
+Inference: seq_len = 14
+Text 0
+  Median: 56.39 ms
+  IQR:    0.41 ms (56.08 to 56.50)
+  9 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e3b561a8f80>
+Inference: seq_len = 17
+Text 1
+  Median: 56.88 ms
+  IQR:    0.37 ms (56.76 to 57.12)
+  9 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e39cabdd880>
+Inference: seq_len = 63
+Text 2
+  Median: 62.63 ms
+  IQR:    0.86 ms (62.40 to 63.26)
+  8 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e3b5d3315b0>
+Inference: seq_len = 192
+Text 3
+  Median: 86.02 ms
+  IQR:    0.20 ms (85.94 to 86.15)
+  6 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e3b561a8f80>
+Inference: seq_len = 297
+Text 4
+  Median: 141.58 ms
+  IQR:    0.80 ms (140.92 to 141.73)
+  4 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e39cabdd880>
+Inference: seq_len = 301
+Text 5
+  Median: 141.74 ms
+  IQR:    1.07 ms (140.91 to 141.98)
+  4 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e39cb7d62a0>
+Inference: seq_len = 306
+Text 6
+  Median: 142.01 ms
+  IQR:    1.01 ms (141.10 to 142.11)
+  4 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e39dc3cdac0>
+Inference: seq_len = 322
+Text 7
+  Median: 145.76 ms
+  IQR:    0.92 ms (144.86 to 145.78)
+  4 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e3720205220>
+Inference: seq_len = 332
+Text 8
+  Median: 146.24 ms
+  IQR:    0.61 ms (145.71 to 146.31)
+  4 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e35f4c9ffe0>
+Inference: seq_len = 338
+Text 9
+  Median: 146.79 ms
+  IQR:    1.28 ms (145.79 to 147.07)
+  4 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e39dc3cdac0>
+Inference: seq_len = 344
+Text 10
+  Median: 146.94 ms
+  IQR:    0.70 ms (146.38 to 147.08)
+  4 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e3967d100b0>
+Inference: seq_len = 358
+Text 11
+  Median: 147.94 ms
+  IQR:    0.95 ms (147.16 to 148.11)
+  4 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e3422beffb0>
+Inference: seq_len = 355
+Text 12
+  Median: 148.09 ms
+  IQR:    1.03 ms (147.20 to 148.23)
+  4 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e39dc3cdac0>
+Inference: seq_len = 352
+Text 13
+  Median: 148.30 ms
+  IQR:    0.71 ms (147.76 to 148.47)
+  4 measurements, 1 runs per measurement, 1 thread
+<torch.utils.benchmark.utils.common.Measurement object at 0x7e3967d100b0>
+Inference: seq_len = 713
+Text 14
+  Median: 251.48 ms
+  3 measurements, 1 runs per measurement, 1 thread
+[SLURM][INFO] Run finished at Sat Dec 27 04:41:50 PM KST 2025

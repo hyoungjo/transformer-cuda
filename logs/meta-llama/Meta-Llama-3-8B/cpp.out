@@ -1,0 +1,38 @@
+make -C cpp
+make[1]: Entering directory '/home/hyoungjo/transformer-cuda/cpp'
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O3 -march=native -Iinclude -c source/operations.cpp -o source/operations.o
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O3 -march=native -Iinclude -c source/llama3_8b.cpp -o source/llama3_8b.o
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O3 -march=native -Iinclude -c source/main.cpp -o source/main.o
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O3 -march=native -Iinclude source/tensor.o source/operations.o source/utils.o source/gpt2.o source/llama3_8b.o source/main.o -o main
+/home/hyoungjo/miniconda3/envs/cuda/bin/x86_64-conda-linux-gnu-g++ -Wall -Wextra -O3 -march=native -Iinclude source/tensor.o source/operations.o source/utils.o source/gpt2.o source/llama3_8b.o source/timer.o -o timer
+make[1]: Leaving directory '/home/hyoungjo/transformer-cuda/cpp'
+[SLURM][INFO] Run started on baram at Wed Dec 31 09:29:27 AM KST 2025
+[CPP][INFO] Loading model weights...
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/weights.bin
+[CPP][INFO] Starting inference loop [0, 15)
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/0/input_ids.bin
+[CPP][TRACE] Input size: 14 tokens
+[CPP][TRACE] Predicted token_id: 690
+[CPP][TRACE] Max probability: 0.175232
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/0/probs.bin
+[CPP][INFO] Sample 0 Passed | Max Error: 5.26011e-05
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/1/input_ids.bin
+[CPP][TRACE] Input size: 17 tokens
+[CPP][TRACE] Predicted token_id: 430
+[CPP][TRACE] Max probability: 0.470192
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/1/probs.bin
+[CPP][INFO] Sample 1 Passed | Max Error: 0.000108957
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/2/input_ids.bin
+[CPP][TRACE] Input size: 63 tokens
+[CPP][TRACE] Predicted token_id: 430
+[CPP][TRACE] Max probability: 0.221665
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/2/probs.bin
+[CPP][INFO] Sample 2 Passed | Max Error: 6.21378e-05
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/3/input_ids.bin
+[CPP][TRACE] Input size: 192 tokens
+[CPP][TRACE] Predicted token_id: 264
+[CPP][TRACE] Max probability: 0.0945875
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/3/probs.bin
+[CPP][INFO] Sample 3 Passed | Max Error: 2.40952e-05
+[CPP][INFO] Loading data from data/meta-llama/Meta-Llama-3-8B/4/input_ids.bin
+[CPP][TRACE] Input size: 297 tokens
